@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — deethrifts</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="siteContainer">
+  <div class="spacer-sm"></div>
+
+  <!-- PASSWORD GATE -->
+  <div id="adminGate" class="glass-body r-all" style="flex-direction:column;">
+    <div class="admin-gate">
+      <h2 style="font-size:1.2em; margin:0;">Admin Access</h2>
+      <p style="text-align:center; max-width:100%; font-size:0.9em;">Enter the admin password to continue.</p>
+      <input class="glass-input" id="adminPass" type="password" placeholder="Password" autofocus>
+      <button class="aero-btn pink-btn" style="margin-top:14px;" id="adminLoginBtn">Enter →</button>
+    </div>
+  </div>
+
+  <!-- ADMIN PANEL -->
+  <div id="adminPanel" style="display:none;">
+    <div class="glass-header r-top flex-center" style="padding:10px 16px;">
+      <h2 style="font-size:1.1em; margin:0;">Admin Panel</h2>
+    </div>
+
+    <div class="glass-body r-bot" style="flex-direction:column; padding:0;">
+
+      <!-- ADD ITEM FORM -->
+      <div class="admin-section" style="border-bottom:1px solid rgba(255,255,255,0.06);">
+        <div class="admin-section-title">Add New Item</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Item Name</label>
+            <input class="glass-input" id="a-name" type="text" placeholder="Vintage Wool Blazer">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <select class="glass-input" id="a-cat">
+              <option value="new">New Arrivals</option>
+              <option value="dresses">Dresses</option>
+              <option value="tops">Tops</option>
+              <option value="bottoms">Bottoms</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Meta (size, era, etc.)</label>
+            <input class="glass-input" id="a-meta" type="text" placeholder="Size M · 1980s">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Price ($)</label>
+            <input class="glass-input" id="a-price" type="number" placeholder="25" min="1">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Condition</label>
+            <select class="glass-input" id="a-cond">
+              <option value="great">Great</option>
+              <option value="good">Good</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Image Seed (for picsum)</label>
+            <input class="glass-input" id="a-img" type="text" placeholder="my-blazer-1">
+            <p style="font-size:0.7em; color:rgba(255,255,255,0.25); margin-top:4px;">
+              This becomes the seed for the placeholder image. Use a unique word per item.
+            </p>
+          </div>
+        </div>
+        <button class="aero-btn" id="addItemBtn" style="margin-top:4px;">+ Add to Drafts</button>
+      </div>
+
+      <!-- DRAFT ITEMS -->
+      <div class="admin-section" style="border-bottom:1px solid rgba(255,255,255,0.06);">
+        <div class="admin-section-title">
+          Draft Items <span class="draft-count" id="draftCount">0</span>
+        </div>
+        <div id="draftList"><p style="font-size:0.85em; color:rgba(255,255,255,0.3);">No drafts yet.</p></div>
+        <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+          <button class="aero-btn pink-btn" id="releaseBtn" style="text-decoration:none;">✦ Release All Drafts</button>
+          <button class="aero-btn" id="exportBtn" style="text-decoration:none;">📋 Export as Code</button>
+        </div>
+        <div id="codeOutput" style="display:none; margin-top:14px;">
+          <div class="admin-section-title">Generated Code</div>
+          <div class="code-output" id="codeText"></div>
+          <button class="aero-btn" style="margin-top:8px; font-size:0.82em;" onclick="copyCode()">📋 Copy to Clipboard</button>
+        </div>
+      </div>
+
+      <!-- LIVE ITEMS -->
+      <div class="admin-section" style="border-bottom:1px solid rgba(255,255,255,0.06);">
+        <div class="admin-section-title">
+          Live Items <span class="draft-count" id="liveCount">0</span>
+        </div>
+        <div id="liveList"><p style="font-size:0.85em; color:rgba(255,255,255,0.3);">No custom live items.</p></div>
+      </div>
+
+      <!-- CUSTOMERS -->
+      <div class="admin-section">
+        <div class="admin-section-title">
+          Known Customers <span class="draft-count" id="custCount">0</span>
+        </div>
+        <div id="custList"><p style="font-size:0.85em; color:rgba(255,255,255,0.3);">No customers yet.</p></div>
+      </div>
+
+      <!-- NOTE -->
+      <div class="admin-section">
+        <div class="admin-note">
+          <strong style="color:rgba(255,180,100,0.7);">⚠️ localStorage limitation:</strong><br>
+          Drafts, live items, and customers are stored in your browser's localStorage only.
+          Other visitors won't see released items unless you either:<br><br>
+          1. Use "Export as Code" and paste the output into DEFAULT_PRODUCTS in cart.js, then re-upload to your host.<br>
+          2. Replace localStorage with a real backend (Firebase, Supabase, etc.) for live updates across all visitors.<br><br>
+          The customer database works per-browser — a customer recognized on their own device won't be recognized on a different device. For a true customer DB, you need server-side storage.
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="spacer-md"></div>
+</div>
+
+<div class="toast-msg" id="toastEl"></div>
+<script src="cart.js"></script>
+<script>
+// ═══ Change this password! ═══
+const ADMIN_PASSWORD = "deethrifts";
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Check if already logged in this session
+  if (sessionStorage.getItem('dee_admin') === '1') {
+    showPanel();
+  }
+
+  document.getElementById('adminLoginBtn').addEventListener('click', tryLogin);
+  document.getElementById('adminPass').addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
+  document.getElementById('addItemBtn').addEventListener('click', addItem);
+  document.getElementById('releaseBtn').addEventListener('click', releaseAll);
+  document.getElementById('exportBtn').addEventListener('click', exportCode);
+});
+
+function tryLogin() {
+  if (document.getElementById('adminPass').value === ADMIN_PASSWORD) {
+    sessionStorage.setItem('dee_admin', '1');
+    showPanel();
+  } else {
+    showToast('Wrong password ✦');
+  }
+}
+
+function showPanel() {
+  document.getElementById('adminGate').style.display = 'none';
+  document.getElementById('adminPanel').style.display = 'block';
+  renderDrafts();
+  renderLive();
+  renderCustomers();
+}
+
+function addItem() {
+  const name = document.getElementById('a-name').value.trim();
+  const meta = document.getElementById('a-meta').value.trim();
+  const price = parseFloat(document.getElementById('a-price').value);
+  const cond = document.getElementById('a-cond').value;
+  const cat  = document.getElementById('a-cat').value;
+  const img  = document.getElementById('a-img').value.trim();
+
+  if (!name || !meta || !price || !img) {
+    showToast('Fill in all fields ✦');
+    return;
+  }
+
+  Items.addDraft({ name, meta, price, cond, category: cat, img });
+  showToast('Added to drafts ✦');
+
+  // Clear form
+  document.getElementById('a-name').value = '';
+  document.getElementById('a-meta').value = '';
+  document.getElementById('a-price').value = '';
+  document.getElementById('a-img').value = '';
+  renderDrafts();
+}
+
+function renderDrafts() {
+  const drafts = Items.getDrafts();
+  document.getElementById('draftCount').textContent = drafts.length;
+  const el = document.getElementById('draftList');
+
+  if (drafts.length === 0) {
+    el.innerHTML = '<p style="font-size:0.85em; color:rgba(255,255,255,0.3);">No drafts yet.</p>';
+    return;
+  }
+
+  el.innerHTML = drafts.map(i => `
+    <div class="admin-item-row">
+      <img src="https://picsum.photos/seed/${i.img}/96/96.jpg" alt="">
+      <div class="admin-item-info">
+        <div class="admin-item-name">${i.name}</div>
+        <div class="admin-item-meta">${i.meta} · ${i.category}</div>
+      </div>
+      <div class="admin-item-price">$${i.price}</div>
+      <button class="admin-del-btn" onclick="removeDraft('${i.id}')">remove</button>
+    </div>
+  `).join('');
+}
+
+function removeDraft(id) { Items.removeDraft(id); renderDrafts(); showToast('Draft removed ✦'); }
+
+function renderLive() {
+  const live = Items.getLive();
+  document.getElementById('liveCount').textContent = live.length;
+  const el = document.getElementById('liveList');
+
+  if (live.length === 0) {
+    el.innerHTML = '<p style="font-size:0.85em; color:rgba(255,255,255,0.3);">No custom live items.</p>';
+    return;
+  }
+
+  el.innerHTML = live.map(i => `
+    <div class="admin-item-row">
+      <img src="https://picsum.photos/seed/${i.img}/96/96.jpg" alt="">
+      <div class="admin-item-info">
+        <div class="admin-item-name">${i.name}</div>
+        <div class="admin-item-meta">${i.meta} · ${i.category}</div>
+      </div>
+      <div class="admin-item-price">$${i.price}</div>
+      <button class="admin-del-btn" onclick="removeLive('${i.id}')">remove</button>
+    </div>
+  `).join('');
+}
+
+function removeLive(id) { Items.removeLive(id); renderLive(); showToast('Item removed ✦'); }
+
+function renderCustomers() {
+  const custs = Customers.getAll();
+  document.getElementById('custCount').textContent = custs.length;
+  const el = document.getElementById('custList');
+
+  if (custs.length === 0) {
+    el.innerHTML = '<p style="font-size:0.85em; color:rgba(255,255,255,0.3);">No customers yet.</p>';
+    return;
+  }
+
+  el.innerHTML = custs.map(c => `
+    <div class="admin-item-row">
+      <div class="admin-item-info">
+        <div class="admin-item-name">${c.name}</div>
+        <div class="admin-item-meta">${c.email} · since ${new Date(c.firstOrder).toLocaleDateString()}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function releaseAll() {
+  const n = Items.releaseAll();
+  if (n === 0) { showToast('No drafts to release ✦'); return; }
+  showToast(n + ' items released! ✦');
+  renderDrafts();
+  renderLive();
+  document.getElementById('codeOutput').style.display = 'none';
+}
+
+function exportCode() {
+  const code = Items.exportAsJS();
+  if (!code) { showToast('No live items to export ✦'); return; }
+  document.getElementById('codeOutput').style.display = 'block';
+  document.getElementById('codeText').textContent = code;
+}
+
+function copyCode() {
+  const text = document.getElementById('codeText').textContent;
+  navigator.clipboard.writeText(text).then(() => showToast('Code copied! ✦')).catch(() => showToast('Copy failed ✦'));
+}
+</script>
+</body>
+</html>

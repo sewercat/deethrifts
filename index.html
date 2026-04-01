@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>deethrifts</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-page="home">
+
+<div id="siteContainer">
+  <div class="spacer-sm"></div>
+
+  <nav id="mainNav" class="glass-header flex-center">
+    <div style="display:flex; align-items:center; height:100%;">
+      <a href="index.html" class="nav-link" data-page="home"><span>🏠 Home</span></a>
+      <div class="vsep"></div>
+      <a href="shop.html" class="nav-link" data-page="shop"><span>Shop</span></a>
+      <div class="vsep"></div>
+      <a href="contact.html" class="nav-link" data-page="contact"><span>Contact</span></a>
+      <div class="vsep"></div>
+      <a href="cart.html" class="nav-link" data-page="cart" style="gap:6px;">
+        <span>🛒 Cart</span>
+        <span class="cart-badge" style="display:none;">0</span>
+      </a>
+    </div>
+  </nav>
+
+  <div class="spacer-sm"></div>
+
+  <div>
+    <div class="glass-body r-top" style="padding:0; flex-direction:column;">
+      <div style="padding:28px; text-align:center;">
+        <h2>welcome to dee<span style="color:#ffb0cc; font-weight:400;">thrifts</span></h2>
+        <p style="text-align:center; margin:8px auto 0; max-width:500px;">
+          curated vintage &amp; secondhand — hand-picked, honestly described, fairly priced.
+        </p>
+      </div>
+      <div class="section-label">✦ featured picks</div>
+      <div id="featuredRow" style="display:flex; gap:14px; padding:16px; flex-wrap:wrap; justify-content:center;"></div>
+    </div>
+
+    <div style="height:2px;"></div>
+
+    <div class="glass-body r-bot flex-center">
+      <div style="padding:14px; text-align:center;">
+        <p style="font-size:0.95em; color:rgba(255,255,255,0.45); margin:0; max-width:100%;">
+          new items added weekly ✦ everything is pre-owned and sold as-is ✦ shipping worldwide
+        </p>
+      </div>
+    </div>
+
+    <div class="spacer-md"></div>
+
+    <div class="glass-header r-all" style="padding:0;">
+      <div class="footer-content">
+        <span>© 2025 <span class="logo-text">dee<span class="pink">thrifts</span></span> — all items are pre-owned and sold as-is</span>
+      </div>
+    </div>
+
+    <div class="spacer-md"></div>
+  </div>
+</div>
+
+<div class="toast-msg" id="toastEl"></div>
+<script src="cart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const picks = [
+    getByCategory('new')[0], getByCategory('dresses')[0],
+    getByCategory('tops')[0], getByCategory('bottoms')[0],
+    getByCategory('new')[1], getByCategory('dresses')[1]
+  ].filter(Boolean);
+
+  const row = document.getElementById('featuredRow');
+  picks.forEach(p => {
+    const a = document.createElement('a');
+    a.href = 'shop.html#' + p.category;
+    a.style.cssText = 'text-align:center; text-decoration:none; transition:all 0.2s; width:160px;';
+    a.innerHTML = `
+      <img src="https://picsum.photos/seed/${p.img}/320/320.jpg"
+           style="width:160px;height:160px;object-fit:cover;border-radius:8px;
+                  border:2px solid rgba(0,0,0,0.15);
+                  box-shadow:0px 3px 6px rgba(0,0,0,0.2),inset 0px 1px 1px rgba(255,255,255,0.15);
+                  margin-bottom:8px;display:block;">
+      <div style="font-size:0.9em;color:rgba(255,255,255,0.8);text-shadow:0px -1px 1px rgba(0,0,0,0.2);">${p.name}</div>
+      <div style="font-size:1em;color:#ffb0cc;font-weight:500;text-shadow:0px -1px 1px rgba(0,0,0,0.2);">$${p.price}</div>
+    `;
+    a.onmouseenter = () => { a.style.filter = 'brightness(90%)'; a.style.transform = 'scale(1.02)'; };
+    a.onmouseleave = () => { a.style.filter = ''; a.style.transform = ''; };
+    row.appendChild(a);
+  });
+});
+</script>
+</body>
+</html>
