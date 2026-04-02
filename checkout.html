@@ -289,8 +289,25 @@ async function handleCOD() {
   const cart = Cart.get();
   const subtotal = Cart.total();
   const orderText = buildOrderText(d, cart, subtotal);
+  const total = subtotal + 5.99;
 
-  currentOrder = Orders.create({ type:'cod', customer:d, items:cart, subtotal, total:subtotal+5.99 });
+  currentOrder = Orders.create({
+    type:'cod',
+    customer:d,
+    items:cart,
+    subtotal,
+    total,
+    phone: d.phone,
+    secondPhone: d.phone2 || '',
+    name: (d.first + ' ' + d.last).trim(),
+    city: d.city || '',
+    address: [d.addr, d.city, d.zip, d.country].filter(Boolean).join(', '),
+    firstOrder: lastIsReturning === null ? false : !lastIsReturning,
+    paymentMode: 'cod',
+    amount: '$' + total.toFixed(2),
+    screenshot: '',
+    confirmed: false
+  });
   await sendOrder(orderText, 'CASH ON DELIVERY');
 
   Cart.clear();
@@ -304,8 +321,25 @@ async function handleOnline() {
   const cart = Cart.get();
   const subtotal = Cart.total();
   const orderText = buildOrderText(d, cart, subtotal);
+  const total = subtotal + 5.99;
 
-  currentOrder = Orders.create({ type:'online', customer:d, items:cart, subtotal, total:subtotal+5.99 });
+  currentOrder = Orders.create({
+    type:'online',
+    customer:d,
+    items:cart,
+    subtotal,
+    total,
+    phone: d.phone,
+    secondPhone: d.phone2 || '',
+    name: (d.first + ' ' + d.last).trim(),
+    city: d.city || '',
+    address: [d.addr, d.city, d.zip, d.country].filter(Boolean).join(', '),
+    firstOrder: lastIsReturning === null ? false : !lastIsReturning,
+    paymentMode: 'prepaid',
+    amount: '$' + total.toFixed(2),
+    screenshot: '',
+    confirmed: false
+  });
   await sendOrder(orderText, 'ONLINE (proof pending)');
 
   window.location.href = 'payment.html?context=order&oid=' + currentOrder.id;
@@ -316,8 +350,25 @@ async function handleFirstTimeDelivery() {
   const cart = Cart.get();
   const subtotal = Cart.total();
   const orderText = buildOrderText(d, cart, subtotal);
+  const total = subtotal + 5.99;
 
-  currentOrder = Orders.create({ type:'first_time_delivery', customer:d, items:cart, subtotal, total:subtotal+5.99 });
+  currentOrder = Orders.create({
+    type:'first_time_delivery',
+    customer:d,
+    items:cart,
+    subtotal,
+    total,
+    phone: d.phone,
+    secondPhone: d.phone2 || '',
+    name: (d.first + ' ' + d.last).trim(),
+    city: d.city || '',
+    address: [d.addr, d.city, d.zip, d.country].filter(Boolean).join(', '),
+    firstOrder: true,
+    paymentMode: 'prepaid',
+    amount: 'Rs 300',
+    screenshot: '',
+    confirmed: false
+  });
   await sendOrder(orderText, 'FIRST-TIME DELIVERY FEE â‚¹300 (proof pending)');
 
   window.location.href = 'payment.html?context=delivery&oid=' + currentOrder.id;

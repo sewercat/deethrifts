@@ -144,6 +144,10 @@
           Pending Orders <span class="draft-count" id="orderCount">0</span>
         </div>
         <div id="orderList"><p style="font-size:0.85em; color:rgba(255,255,255,0.3);">No pending orders.</p></div>
+        <p style="font-size:0.72em; color:rgba(255,255,255,0.25); margin-top:8px;">
+          <strong style="color:rgba(37,211,102,0.6);">Green button:</strong> Confirm order + send WhatsApp<br>
+          <strong style="color:rgba(100,200,140,0.6);">Gray button:</strong> Mark done without WhatsApp
+        </p>
       </div>
 
       <!-- NOTE -->
@@ -162,9 +166,6 @@
 
 <div class="toast-msg" id="toastEl"></div>
 
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js"></script>
 <script src="cart.js"></script>
 <script>
 // ══════════════════════════════════════════
@@ -421,12 +422,46 @@ function renderOrders() {
       <div class="admin-item-row">
         <div class="admin-item-info">
           <div class="admin-item-name">${d.first || '?'} ${d.last || ''} — ${typeLabel}</div>
-          <div class="admin-item-meta">${d.email || '?'} · $${(o.total||0).toFixed(2)} · ${itemNames}</div>
+          <div class="admin-item-meta">${d.phone || 'no phone'} · $${(o.total||0).toFixed(2)} · ${itemNames}</div>
         </div>
-        <button class="admin-del-btn" onclick="markOrderDone('${o.id}')" style="color:rgba(100,200,140,0.6); border-color:rgba(100,200,140,0.2);">done</button>
+        <button class="admin-wa-btn" onclick="confirmOrderWhatsApp('${o.id}')">Confirm + WhatsApp</button>
+        <button class="admin-del-btn" onclick="markOrderDone('${o.id}')">done</button>
       </div>
     `;
   }).join('');
+}
+
+async function confirmOrderWhatsApp(orderId) {
+  const btn = event.target;
+  const originalText = btn.textContent;
+  btn.textContent = 'Sending...';
+  btn.disabled = true;
+
+  try {
+    const res = await fetch(GOOGLE_SCRIPT_URL + '?redirect=false', {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        type: 'whatsapp_confirm',
+        orderId: orderId
+      })
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      showToast('Order confirmed & WhatsApp sent! ✦');
+      Orders.remove(orderId);
+      renderOrders();
+    } else {
+      showToast('WhatsApp failed — check API config');
+    }
+  } catch(e) {
+    showToast('Connection error ✦');
+  }
+
+  btn.textContent = originalText;
+  btn.disabled = false;
 }
 
 function markOrderDone(id) {

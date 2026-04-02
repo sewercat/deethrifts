@@ -120,6 +120,8 @@
 <div class="toast-msg" id="toastEl"></div>
 <script src="cart.js"></script>
 <script>
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby4GFix50mKnAHSpDGi-WQU6emttDYLDu3usIyqK6ncTtFJKbqfKND_wJLHeI_UF3J8/exec";
+
 document.addEventListener('DOMContentLoaded', () => {
   const params = new URLSearchParams(window.location.search);
   const context = params.get('context'); // "delivery" or "order"
@@ -167,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Submit proof
-  submitBtn.addEventListener('click', () => {
+  submitBtn.addEventListener('click', async () => {
     if (!selectedFile || !oid) return;
 
     // Mark order as paid (store proof reference)
@@ -189,6 +191,31 @@ document.addEventListener('DOMContentLoaded', () => {
       localStorage.setItem('dee_proof_img_' + oid, preview.src);
     } catch(e) {
       // localStorage might be full
+    }
+
+    try {
+      const allOrders = Orders.getAll();
+      const order = allOrders.find(o => o.id === oid);
+      if (order) {
+        await fetch(GOOGLE_SCRIPT_URL + '?redirect=false', {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            type: 'payment_proof',
+            orderId: oid,
+            phone: order.phone || (order.customer && order.customer.phone) || '',
+            secondPhone: order.secondPhone || '',
+            name: order.name || '',
+            city: order.city || '',
+            address: order.address || '',
+            amount: order.amount || '',
+            screenshot: preview.src || '',
+            paymentMode: 'prepaid'
+          })
+        });
+      }
+    } catch(e) {
+      console.warn('Proof sync failed:', e);
     }
 
     // Show confirmation
