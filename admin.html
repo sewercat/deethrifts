@@ -176,49 +176,35 @@ const OTP_EXPIRY_MINUTES = 5;
 const COOLDOWN_SECONDS = 60;
 
 // ══════════════════════════════════════════
-//  OTP LOGIC
+//  OTP LOGIC (Google Sheets, no Firebase)
 // ══════════════════════════════════════════
 const OTP = {
-  _col() { return db.collection('otps'); },
-
   generate() {
     return Math.floor(100000 + Math.random() * 900000).toString();
   },
 
-  async save(code) {
-    const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
-    await this._col().doc(code).set({
-      email: ADMIN_EMAIL,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      expiresAt
-    });
+  async send(phone) {
+    const code = this.generate();
+    try {
+      await fetch(GOOGLE_SCRIPT_URL + '?redirect=false', {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ type: 'otp', code: code, expires: OTP_EXPIRY_MINUTES })
+      });
+    } catch(e) {
+      console.warn('OTP email failed:', e);
+    }
+    return code;
   },
 
   async verify(code) {
-    const doc = await this._col().doc(code).get();
-    if (!doc.exists) return { valid: false, reason: 'Code not found' };
-
-    const data = doc.data();
-    const now = new Date();
-    const expires = data.expiresAt?.toDate?.() || new Date(0);
-
-    if (now > expires) {
-      await this._col().doc(code).delete();
-      return { valid: false, reason: 'Code expired' };
+    try {
+      const res = await fetch(GOOGLE_SCRIPT_URL + '?redirect=false&action=verify&code=' + encodeURIComponent(code.trim()));
+      const data = await res.json();
+      return data;
+    } catch(e) {
+      return { valid: false, reason: 'Connection error' };
     }
-
-    // Valid — delete so it can't be reused
-    await this._col().doc(code).delete();
-    return { valid: true };
-  },
-
-  async cleanup() {
-    // Delete expired codes (run occasionally)
-    const now = new Date();
-    const snap = await this._col().where('expiresAt', '<', now).get();
-    const batch = db.batch();
-    snap.docs.forEach(d => batch.delete(d.ref));
-    if (!snap.empty) await batch.commit();
   }
 };
 
@@ -242,31 +228,12 @@ async function sendOTP() {
   btn.disabled = true;
 
   try {
-    // Clean up old expired codes first
-    await OTP.cleanup().catch(() => {});
-
-    const code = OTP.generate();
-    await OTP.save(code);
-
-    // Send via Formspree to your email
-    await fetch(GOOGLE_SCRIPT_URL, {
-      method: 'POST',
-      body: JSON.stringify({
-        type: 'otp',
-        code: code,
-        expires: OTP_EXPIRY_MINUTES
-      })
-    });
-
-    // Switch to enter screen
+    const code = await OTP.send();
     showScreen('enter');
     document.getElementById('otpInput').value = '';
     document.getElementById('otpError').style.display = 'none';
     document.getElementById('otpInput').focus();
-
-    // Start cooldown
     startCooldown();
-
   } catch(e) {
     showToast('Failed to send code — check your connection ✦');
     btn.textContent = 'Send Code to My Email';
