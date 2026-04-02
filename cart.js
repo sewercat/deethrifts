@@ -107,7 +107,7 @@ const Customers = {
     if (!this._url) return false;
     try {
       const clean = phone.replace(/\D/g, "");
-      const res = await fetch(this._url + '?phone=' + encodeURIComponent(clean));
+      const res = await fetch(this._url + '?redirect=false&phone=' + encodeURIComponent(clean));
       const data = await res.json();
       return data.returning === true;
     } catch(e) {

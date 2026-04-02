@@ -264,7 +264,7 @@ function buildOrderText(d, cart, subtotal) {
 
 async function sendOrder(orderText, paymentType) {
   try {
-    await fetch(GOOGLE_SCRIPT_URL, {
+    await fetch(GOOGLE_SCRIPT_URL + '?redirect=false', {
       method: 'POST',
       body: JSON.stringify({
         type: 'order',
