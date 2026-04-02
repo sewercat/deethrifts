@@ -170,8 +170,8 @@
 // ══════════════════════════════════════════
 //  CONFIG — CHANGE THESE TWO VALUES
 // ══════════════════════════════════════════
-const ADMIN_EMAIL = "hello@deethrifts.com";
-const OTP_FORMSPREE_URL = "https://formspree.io/f/YOUR_OTP_FORM_ID";
+const ADMIN_EMAIL = "animewhiss@gmail.com";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxhPLMYLshteS-V2JEM3RmJrGrOTl07JXiv7A-HYC4SWdfRN9F6nMT3Ue0ZUXqVcQqYag/exec";
 const OTP_EXPIRY_MINUTES = 5;
 const COOLDOWN_SECONDS = 60;
 
@@ -249,7 +249,7 @@ async function sendOTP() {
     await OTP.save(code);
 
     // Send via Formspree to your email
-    await fetch(OTP_FORMSPREE_URL, {
+    await fetch(GOOGLE_SCRIPT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify({
