@@ -144,9 +144,13 @@
 </div>
 
 <div class="toast-msg" id="toastEl"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
 <script src="cart.js"></script>
 <script>
-const FORMSPREE_URL = "https://formspree.io/f/YOUR_FORM_ID";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby4GFix50mKnAHSpDGi-WQU6emttDYLDu3usIyqK6ncTtFJKbqfKND_wJLHeI_UF3J8/exec";
 
 let currentOrder = null;
 
@@ -154,7 +158,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const cart = Cart.get();
   if (cart.length === 0) { window.location.href = 'cart.html'; return; }
 
-  // Build summary
   const si = document.getElementById('summaryItems');
   cart.forEach(item => {
     const row = document.createElement('div');
@@ -173,11 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('sumSubtotal').textContent = '$' + subtotal.toFixed(2);
   document.getElementById('sumTotal').textContent = '$' + (subtotal + 5.99).toFixed(2);
 
-  // Continue button → check customer
   document.getElementById('continueBtn').addEventListener('click', handleContinue);
-
-  // Auto-check on email blur
-  document.getElementById('f-email').addEventListener('blur', handleContinue);
 });
 
 function getFormData() {
@@ -194,19 +193,25 @@ function getFormData() {
   };
 }
 
-function handleContinue() {
+async function handleContinue() {
   const d = getFormData();
   if (!d.first || !d.last || !d.email) {
     showToast('Please fill in your name and email ✦');
     return;
   }
 
-  const isReturning = Customers.isReturning(d.email);
+  const continueBtn = document.getElementById('continueBtn');
+  continueBtn.textContent = 'Checking...';
+  continueBtn.disabled = true;
+
+  // This now asks Firebase (real network call)
+  const isReturning = await Customers.isReturning(d.email);
+
+  continueBtn.textContent = 'Continue →';
+  continueBtn.disabled = false;
+
   const statusEl = document.getElementById('customerStatus');
   const choicesEl = document.getElementById('payChoices');
-  const formBottom = document.getElementById('formBottom');
-  const continueBtn = document.getElementById('continueBtn');
-
   statusEl.style.display = 'block';
   choicesEl.style.display = 'block';
   continueBtn.style.display = 'none';
@@ -260,26 +265,28 @@ function buildOrderText(d, cart, subtotal) {
   return `ORDER\n${'─'.repeat(30)}\n${lines}\n\nSubtotal: $${subtotal.toFixed(2)}\nShipping: $5.99\nTotal:    $${(subtotal+5.99).toFixed(2)}\n\nCUSTOMER\n${'─'.repeat(30)}\nName:    ${d.first} ${d.last}\nEmail:   ${d.email}\nContact: ${d.contact || '—'}\nAddress: ${d.addr || '—'}\n${d.city || '—'} ${d.zip || '—'} ${d.country || '—'}\nNotes:   ${d.notes || '—'}`;
 }
 
-async function sendToFormspree(d, orderText) {
+async function sendOrder(orderText, paymentType) {
   try {
-    await fetch(FORMSPREE_URL, {
+    await fetch(GOOGLE_SCRIPT_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify({ name: `${d.first} ${d.last}`, email: d.email, order: orderText, _subject: `New order from deethrifts — ${d.first} ${d.last}` })
+      body: JSON.stringify({
+        type: 'order',
+        subject: 'New order — ' + paymentType,
+        details: orderText + '\n\nPayment: ' + paymentType
+      })
     });
-  } catch(e) { /* form submission best-effort */ }
+  } catch(e) {}
 }
 
-function handleCOD() {
+async function handleCOD() {
   const d = getFormData();
   const cart = Cart.get();
   const subtotal = Cart.total();
   const orderText = buildOrderText(d, cart, subtotal);
 
   currentOrder = Orders.create({ type:'cod', customer:d, items:cart, subtotal, total:subtotal+5.99 });
-  Customers.add(d.email, `${d.first} ${d.last}`);
-
-  sendToFormspree(d, orderText + '\n\nPayment: CASH ON DELIVERY');
+  await Customers.add(d.email, `${d.first} ${d.last}`);
+  await sendOrder(orderText, 'CASH ON DELIVERY');
 
   Cart.clear();
   document.getElementById('checkoutForm').style.display = 'none';
@@ -287,29 +294,27 @@ function handleCOD() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function handleOnline() {
+async function handleOnline() {
   const d = getFormData();
   const cart = Cart.get();
   const subtotal = Cart.total();
   const orderText = buildOrderText(d, cart, subtotal);
 
   currentOrder = Orders.create({ type:'online', customer:d, items:cart, subtotal, total:subtotal+5.99 });
-  Customers.add(d.email, `${d.first} ${d.last}`);
-
-  sendToFormspree(d, orderText + '\n\nPayment: ONLINE (proof pending)');
+  await Customers.add(d.email, `${d.first} ${d.last}`);
+  await sendOrder(orderText, 'ONLINE (proof pending)');
 
   window.location.href = 'payment.html?context=order&oid=' + currentOrder.id;
 }
 
-function handleFirstTimeDelivery() {
+async function handleFirstTimeDelivery() {
   const d = getFormData();
   const cart = Cart.get();
   const subtotal = Cart.total();
   const orderText = buildOrderText(d, cart, subtotal);
 
   currentOrder = Orders.create({ type:'first_time_delivery', customer:d, items:cart, subtotal, total:subtotal+5.99 });
-
-  sendToFormspree(d, orderText + '\n\nPayment: FIRST-TIME DELIVERY FEE ₹300 (proof pending)');
+  await sendOrder(orderText, 'FIRST-TIME DELIVERY FEE ₹300 (proof pending)');
 
   window.location.href = 'payment.html?context=delivery&oid=' + currentOrder.id;
 }

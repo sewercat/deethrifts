@@ -170,8 +170,8 @@
 // ══════════════════════════════════════════
 //  CONFIG — CHANGE THESE TWO VALUES
 // ══════════════════════════════════════════
-const ADMIN_EMAIL = "animewhiss@gmail.com";
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxhPLMYLshteS-V2JEM3RmJrGrOTl07JXiv7A-HYC4SWdfRN9F6nMT3Ue0ZUXqVcQqYag/exec";
+const ADMIN_EMAIL = "brrrr228626@gmail.com";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby4GFix50mKnAHSpDGi-WQU6emttDYLDu3usIyqK6ncTtFJKbqfKND_wJLHeI_UF3J8/exec";
 const OTP_EXPIRY_MINUTES = 5;
 const COOLDOWN_SECONDS = 60;
 
@@ -251,11 +251,10 @@ async function sendOTP() {
     // Send via Formspree to your email
     await fetch(GOOGLE_SCRIPT_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify({
-        _subject: `deethrifts admin OTP: ${code}`,
-        message: `Your admin login code is: ${code}\n\nThis code expires in ${OTP_EXPIRY_MINUTES} minutes and can only be used once.`,
-        code: code
+        type: 'otp',
+        code: code,
+        expires: OTP_EXPIRY_MINUTES
       })
     });
 
