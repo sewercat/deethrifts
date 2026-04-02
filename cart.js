@@ -97,20 +97,27 @@ const Items = {
 //  CUSTOMER DB (localStorage per-browser)
 // ══════════════════════════════════════════
 const Customers = {
-  _key: 'dee_customers',
+  _url: null,
 
-  getAll() { try { return JSON.parse(localStorage.getItem(this._key) || '[]'); } catch { return []; } },
-  _save(c) { localStorage.setItem(this._key, JSON.stringify(c)); },
-
-  isReturning(email) {
-    return this.getAll().some(c => c.email.toLowerCase() === email.toLowerCase().trim());
+  setUrl(url) {
+    this._url = url;
   },
-  add(email, name) {
-    if (this.isReturning(email)) return;
-    const list = this.getAll();
-    list.push({ email: email.trim().toLowerCase(), name, firstOrder: new Date().toISOString() });
-    this._save(list);
-  }
+
+  async isReturning(phone) {
+    if (!this._url) return false;
+    try {
+      const clean = phone.replace(/\D/g, "");
+      const res = await fetch(this._url + '?phone=' + encodeURIComponent(clean));
+      const data = await res.json();
+      return data.returning === true;
+    } catch(e) {
+      console.warn('Customer check failed, assuming first-time:', e);
+      return false;
+    }
+  },
+
+  add() { return Promise.resolve(); },
+  getAll() { return []; }
 };
 
 // ══════════════════════════════════════════

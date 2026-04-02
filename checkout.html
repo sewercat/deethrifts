@@ -35,7 +35,7 @@
         <div style="font-size:2.5em; margin-bottom:16px;">✦</div>
         <h2 style="color:#ffb0cc; font-size:1.4em;">Order received!</h2>
         <p style="margin:12px auto 0; max-width:400px; text-align:center;">
-          Thanks so much — we'll email you within 24 hours to confirm your order and arrange payment &amp; shipping.
+          Thanks so much — we'll reach out within 24 hours to confirm your order and arrange payment &amp; shipping.
         </p>
         <div style="margin-top:28px;">
           <a href="index.html" class="aero-btn" style="text-decoration:none;">← Back to home</a>
@@ -63,12 +63,12 @@
               </div>
             </div>
             <div class="form-group">
-              <label class="form-label">Email Address</label>
-              <input class="glass-input" id="f-email" type="email" placeholder="jane@email.com" required>
+              <label class="form-label">Phone Number</label>
+              <input class="glass-input" id="f-phone" type="tel" placeholder="03001234567" required>
             </div>
             <div class="form-group">
-              <label class="form-label">Instagram / How to reach you</label>
-              <input class="glass-input" id="f-contact" type="text" placeholder="@yourhandle or phone number">
+              <label class="form-label">Instagram / Other Contact (optional)</label>
+              <input class="glass-input" id="f-contact" type="text" placeholder="@yourhandle or email">
             </div>
           </div>
         </div>
@@ -85,16 +85,16 @@
             <div class="form-row">
               <div class="form-group">
                 <label class="form-label">City</label>
-                <input class="glass-input" id="f-city" type="text" placeholder="Chicago">
+                <input class="glass-input" id="f-city" type="text" placeholder="Lahore">
               </div>
               <div class="form-group">
                 <label class="form-label">Postcode / ZIP</label>
-                <input class="glass-input" id="f-zip" type="text" placeholder="60601">
+                <input class="glass-input" id="f-zip" type="text" placeholder="54000">
               </div>
             </div>
             <div class="form-group">
               <label class="form-label">Country</label>
-              <input class="glass-input" id="f-country" type="text" placeholder="United States">
+              <input class="glass-input" id="f-country" type="text" placeholder="Pakistan">
             </div>
             <div class="form-group">
               <label class="form-label">Notes (optional)</label>
@@ -105,13 +105,9 @@
 
         <div style="height:2px;"></div>
 
-        <!-- CUSTOMER STATUS — shown after clicking Continue -->
         <div id="customerStatus" style="display:none;"></div>
-
-        <!-- PAYMENT CHOICES — shown dynamically -->
         <div id="payChoices" style="display:none;"></div>
 
-        <!-- BOTTOM RADIUS placeholder -->
         <div id="formBottom" class="glass-body r-bot" style="padding:16px; justify-content:center; gap:14px;">
           <button class="aero-btn" id="continueBtn" style="text-decoration:none;">Continue →</button>
         </div>
@@ -144,13 +140,10 @@
 </div>
 
 <div class="toast-msg" id="toastEl"></div>
-
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js"></script>
 <script src="cart.js"></script>
 <script>
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby4GFix50mKnAHSpDGi-WQU6emttDYLDu3usIyqK6ncTtFJKbqfKND_wJLHeI_UF3J8/exec";
+Customers.setUrl(GOOGLE_SCRIPT_URL);
 
 let currentOrder = null;
 
@@ -183,7 +176,7 @@ function getFormData() {
   return {
     first:   document.getElementById('f-first').value.trim(),
     last:    document.getElementById('f-last').value.trim(),
-    email:   document.getElementById('f-email').value.trim(),
+    phone:   document.getElementById('f-phone').value.trim(),
     contact: document.getElementById('f-contact').value.trim(),
     addr:    document.getElementById('f-addr').value.trim(),
     city:    document.getElementById('f-city').value.trim(),
@@ -195,8 +188,13 @@ function getFormData() {
 
 async function handleContinue() {
   const d = getFormData();
-  if (!d.first || !d.last || !d.email) {
-    showToast('Please fill in your name and email ✦');
+  if (!d.first || !d.last || !d.phone) {
+    showToast('Please fill in your name and phone number ✦');
+    return;
+  }
+
+  if (d.phone.replace(/\D/g, "").length < 7) {
+    showToast('Enter a valid phone number ✦');
     return;
   }
 
@@ -204,8 +202,7 @@ async function handleContinue() {
   continueBtn.textContent = 'Checking...';
   continueBtn.disabled = true;
 
-  // This now asks Firebase (real network call)
-  const isReturning = await Customers.isReturning(d.email);
+  const isReturning = await Customers.isReturning(d.phone);
 
   continueBtn.textContent = 'Continue →';
   continueBtn.disabled = false;
@@ -262,7 +259,7 @@ async function handleContinue() {
 
 function buildOrderText(d, cart, subtotal) {
   const lines = cart.map(i => `• ${i.name} (${i.meta}) — $${i.price.toFixed(2)}`).join('\n');
-  return `ORDER\n${'─'.repeat(30)}\n${lines}\n\nSubtotal: $${subtotal.toFixed(2)}\nShipping: $5.99\nTotal:    $${(subtotal+5.99).toFixed(2)}\n\nCUSTOMER\n${'─'.repeat(30)}\nName:    ${d.first} ${d.last}\nEmail:   ${d.email}\nContact: ${d.contact || '—'}\nAddress: ${d.addr || '—'}\n${d.city || '—'} ${d.zip || '—'} ${d.country || '—'}\nNotes:   ${d.notes || '—'}`;
+  return `ORDER\n${'─'.repeat(30)}\n${lines}\n\nSubtotal: $${subtotal.toFixed(2)}\nShipping: $5.99\nTotal:    $${(subtotal+5.99).toFixed(2)}\n\nCUSTOMER\n${'─'.repeat(30)}\nName:    ${d.first} ${d.last}\nPhone:   ${d.phone}\nContact: ${d.contact || '—'}\nAddress: ${d.addr || '—'}\n${d.city || '—'} ${d.zip || '—'} ${d.country || '—'}\nNotes:   ${d.notes || '—'}`;
 }
 
 async function sendOrder(orderText, paymentType) {
@@ -285,7 +282,6 @@ async function handleCOD() {
   const orderText = buildOrderText(d, cart, subtotal);
 
   currentOrder = Orders.create({ type:'cod', customer:d, items:cart, subtotal, total:subtotal+5.99 });
-  await Customers.add(d.email, `${d.first} ${d.last}`);
   await sendOrder(orderText, 'CASH ON DELIVERY');
 
   Cart.clear();
@@ -301,7 +297,6 @@ async function handleOnline() {
   const orderText = buildOrderText(d, cart, subtotal);
 
   currentOrder = Orders.create({ type:'online', customer:d, items:cart, subtotal, total:subtotal+5.99 });
-  await Customers.add(d.email, `${d.first} ${d.last}`);
   await sendOrder(orderText, 'ONLINE (proof pending)');
 
   window.location.href = 'payment.html?context=order&oid=' + currentOrder.id;
