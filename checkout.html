@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Checkout — deethrifts</title>
+  <title>Checkout â€” deethrifts</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body data-page="checkout">
@@ -13,14 +13,14 @@
 
   <nav id="mainNav" class="glass-header flex-center">
     <div style="display:flex; align-items:center; height:100%;">
-      <a href="index.html" class="nav-link" data-page="home"><span>🏠 Home</span></a>
+      <a href="index.html" class="nav-link" data-page="home"><span>ðŸ  Home</span></a>
       <div class="vsep"></div>
       <a href="shop.html" class="nav-link" data-page="shop"><span>Shop</span></a>
       <div class="vsep"></div>
       <a href="contact.html" class="nav-link" data-page="contact"><span>Contact</span></a>
       <div class="vsep"></div>
       <a href="cart.html" class="nav-link" data-page="cart" style="gap:6px;">
-        <span>🛒 Cart</span>
+        <span>ðŸ›’ Cart</span>
         <span class="cart-badge" style="display:none;">0</span>
       </a>
     </div>
@@ -32,13 +32,13 @@
   <div id="orderConfirmed" style="display:none;">
     <div class="glass-body r-all" style="padding:0; flex-direction:column;">
       <div style="padding:48px; text-align:center;">
-        <div style="font-size:2.5em; margin-bottom:16px;">✦</div>
+        <div style="font-size:2.5em; margin-bottom:16px;">âœ¦</div>
         <h2 style="color:#ffb0cc; font-size:1.4em;">Order received!</h2>
         <p style="margin:12px auto 0; max-width:400px; text-align:center;">
-          Thanks so much — we'll reach out within 24 hours to confirm your order and arrange payment &amp; shipping.
+          Thanks so much â€” we'll reach out within 24 hours to confirm your order and arrange payment &amp; shipping.
         </p>
         <div style="margin-top:28px;">
-          <a href="index.html" class="aero-btn" style="text-decoration:none;">← Back to home</a>
+          <a href="index.html" class="aero-btn" style="text-decoration:none;">â† Back to home</a>
         </div>
       </div>
     </div>
@@ -50,7 +50,7 @@
 
       <div>
         <div class="glass-body r-top" style="padding:0; flex-direction:column;">
-          <div class="section-label">✦ Your Details</div>
+          <div class="section-label">âœ¦ Your Details</div>
           <div style="padding:20px;">
             <div class="form-row">
               <div class="form-group">
@@ -67,6 +67,10 @@
               <input class="glass-input" id="f-phone" type="tel" placeholder="03001234567" required>
             </div>
             <div class="form-group">
+              <label class="form-label">Second Phone (optional)</label>
+              <input class="glass-input" id="f-phone2" type="tel" placeholder="03111234567">
+            </div>
+            <div class="form-group">
               <label class="form-label">Instagram / Other Contact (optional)</label>
               <input class="glass-input" id="f-contact" type="text" placeholder="@yourhandle or email">
             </div>
@@ -76,7 +80,7 @@
         <div style="height:2px;"></div>
 
         <div class="glass-body" style="padding:0; flex-direction:column;">
-          <div class="section-label">✦ Shipping Address</div>
+          <div class="section-label">âœ¦ Shipping Address</div>
           <div style="padding:20px;">
             <div class="form-group">
               <label class="form-label">Street Address</label>
@@ -109,19 +113,19 @@
         <div id="payChoices" style="display:none;"></div>
 
         <div id="formBottom" class="glass-body r-bot" style="padding:16px; justify-content:center; gap:14px;">
-          <button class="aero-btn" id="continueBtn" style="text-decoration:none;">Continue →</button>
+          <button class="aero-btn" id="continueBtn" style="text-decoration:none;">Continue â†’</button>
         </div>
       </div>
 
       <!-- ORDER SUMMARY -->
       <div>
         <div class="glass-body r-all" style="padding:0; flex-direction:column;">
-          <div class="section-label">✦ Order Summary</div>
+          <div class="section-label">âœ¦ Order Summary</div>
           <div id="summaryItems" style="padding:8px 0;"></div>
           <div style="border-top:1px solid rgba(255,255,255,0.07); padding:14px 16px;">
-            <div class="total-row"><span class="total-label">Subtotal</span><span class="total-val" id="sumSubtotal">—</span></div>
+            <div class="total-row"><span class="total-label">Subtotal</span><span class="total-val" id="sumSubtotal">â€”</span></div>
             <div class="total-row"><span class="total-label">Shipping</span><span class="total-val">$5.99</span></div>
-            <div class="total-row big"><span class="total-label">Total</span><span class="total-val" id="sumTotal">—</span></div>
+            <div class="total-row big"><span class="total-label">Total</span><span class="total-val" id="sumTotal">â€”</span></div>
           </div>
         </div>
       </div>
@@ -133,7 +137,7 @@
 
   <div class="glass-header r-all" style="padding:0;">
     <div class="footer-content">
-      <span>© 2025 <span class="logo-text">dee<span class="pink">thrifts</span></span> — all items are pre-owned and sold as-is</span>
+      <span>Â© 2025 <span class="logo-text">dee<span class="pink">thrifts</span></span> â€” all items are pre-owned and sold as-is</span>
     </div>
   </div>
   <div class="spacer-md"></div>
@@ -146,6 +150,7 @@ const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby4GFix50mKnA
 Customers.setUrl(GOOGLE_SCRIPT_URL);
 
 let currentOrder = null;
+let lastIsReturning = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   const cart = Cart.get();
@@ -177,6 +182,7 @@ function getFormData() {
     first:   document.getElementById('f-first').value.trim(),
     last:    document.getElementById('f-last').value.trim(),
     phone:   document.getElementById('f-phone').value.trim(),
+    phone2:  document.getElementById('f-phone2').value.trim(),
     contact: document.getElementById('f-contact').value.trim(),
     addr:    document.getElementById('f-addr').value.trim(),
     city:    document.getElementById('f-city').value.trim(),
@@ -189,12 +195,12 @@ function getFormData() {
 async function handleContinue() {
   const d = getFormData();
   if (!d.first || !d.last || !d.phone) {
-    showToast('Please fill in your name and phone number ✦');
+    showToast('Please fill in your name and phone number âœ¦');
     return;
   }
 
   if (d.phone.replace(/\D/g, "").length < 7) {
-    showToast('Enter a valid phone number ✦');
+    showToast('Enter a valid phone number âœ¦');
     return;
   }
 
@@ -203,8 +209,9 @@ async function handleContinue() {
   continueBtn.disabled = true;
 
   const isReturning = await Customers.isReturning(d.phone);
+  lastIsReturning = isReturning;
 
-  continueBtn.textContent = 'Continue →';
+  continueBtn.textContent = 'Continue â†’';
   continueBtn.disabled = false;
 
   const statusEl = document.getElementById('customerStatus');
@@ -216,7 +223,7 @@ async function handleContinue() {
   if (isReturning) {
     statusEl.innerHTML = `
       <div class="customer-status returning">
-        <div class="status-icon">✓</div>
+        <div class="status-icon">âœ“</div>
         <div class="status-text">Welcome back, <strong>${d.first}</strong>! You're a <span class="status-highlight">returning customer</span>.</div>
       </div>
     `;
@@ -236,9 +243,9 @@ async function handleContinue() {
   } else {
     statusEl.innerHTML = `
       <div class="customer-status first-time">
-        <div class="status-icon">✦</div>
+        <div class="status-icon">âœ¦</div>
         <div class="status-text">
-          First-time order — a <span class="status-highlight">₹300 delivery fee</span> must be paid online before we can confirm your order.
+          First-time order â€” a <span class="status-highlight">â‚¹300 delivery fee</span> must be paid online before we can confirm your order.
         </div>
       </div>
     `;
@@ -246,10 +253,10 @@ async function handleContinue() {
       <div class="glass-body r-bot" style="flex-direction:column; padding:0;">
         <div style="padding:16px 20px;">
           <div class="pay-choices">
-            <button class="aero-btn pink-btn" onclick="handleFirstTimeDelivery()" style="text-decoration:none; min-width:200px;">Pay ₹300 Delivery Fee →</button>
+            <button class="aero-btn pink-btn" onclick="handleFirstTimeDelivery()" style="text-decoration:none; min-width:200px;">Pay â‚¹300 Delivery Fee â†’</button>
           </div>
           <p style="font-size:0.78em; color:rgba(255,255,255,0.3); text-align:center; margin-top:8px; max-width:100%;">
-            You'll be redirected to pay ₹300. After we confirm, your order will be processed.
+            You'll be redirected to pay â‚¹300. After we confirm, your order will be processed.
           </p>
         </div>
       </div>
@@ -258,18 +265,20 @@ async function handleContinue() {
 }
 
 function buildOrderText(d, cart, subtotal) {
-  const lines = cart.map(i => `• ${i.name} (${i.meta}) — $${i.price.toFixed(2)}`).join('\n');
-  return `ORDER\n${'─'.repeat(30)}\n${lines}\n\nSubtotal: $${subtotal.toFixed(2)}\nShipping: $5.99\nTotal:    $${(subtotal+5.99).toFixed(2)}\n\nCUSTOMER\n${'─'.repeat(30)}\nName:    ${d.first} ${d.last}\nPhone:   ${d.phone}\nContact: ${d.contact || '—'}\nAddress: ${d.addr || '—'}\n${d.city || '—'} ${d.zip || '—'} ${d.country || '—'}\nNotes:   ${d.notes || '—'}`;
+  const lines = cart.map(i => `â€¢ ${i.name} (${i.meta}) â€” $${i.price.toFixed(2)}`).join('\n');
+  return `ORDER\n${'â”€'.repeat(30)}\n${lines}\n\nSubtotal: $${subtotal.toFixed(2)}\nShipping: $5.99\nTotal:    $${(subtotal+5.99).toFixed(2)}\n\nCUSTOMER\n${'â”€'.repeat(30)}\nName:    ${d.first} ${d.last}\nPhone:   ${d.phone}\nContact: ${d.contact || 'â€”'}\nAddress: ${d.addr || 'â€”'}\n${d.city || 'â€”'} ${d.zip || 'â€”'} ${d.country || 'â€”'}\nNotes:   ${d.notes || 'â€”'}`;
 }
 
 async function sendOrder(orderText, paymentType) {
   try {
     await fetch(GOOGLE_SCRIPT_URL + '?redirect=false', {
       method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({
         type: 'order',
-        subject: 'New order — ' + paymentType,
-        details: orderText + '\n\nPayment: ' + paymentType
+        subject: 'New order - ' + paymentType,
+        details: orderText + '\n\nPayment: ' + paymentType,
+        order: currentOrder
       })
     });
   } catch(e) {}
@@ -309,10 +318,11 @@ async function handleFirstTimeDelivery() {
   const orderText = buildOrderText(d, cart, subtotal);
 
   currentOrder = Orders.create({ type:'first_time_delivery', customer:d, items:cart, subtotal, total:subtotal+5.99 });
-  await sendOrder(orderText, 'FIRST-TIME DELIVERY FEE ₹300 (proof pending)');
+  await sendOrder(orderText, 'FIRST-TIME DELIVERY FEE â‚¹300 (proof pending)');
 
   window.location.href = 'payment.html?context=delivery&oid=' + currentOrder.id;
 }
 </script>
 </body>
 </html>
+
