@@ -65,26 +65,32 @@
 <div class="toast-msg" id="toastEl"></div>
 <script src="cart.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-  const picks = [
-    getByCategory('new')[0], getByCategory('dresses')[0],
-    getByCategory('tops')[0], getByCategory('bottoms')[0],
-    getByCategory('new')[1], getByCategory('dresses')[1]
-  ].filter(Boolean);
+document.addEventListener('DOMContentLoaded', async () => {
+  await Products.refresh();
+  await Cart.syncWithInventory();
 
   const row = document.getElementById('featuredRow');
+  row.innerHTML = '';
+
+  const picks = getAllProducts().slice(0, 6);
+  if (picks.length === 0) {
+    row.innerHTML = '<p style=\"color:rgba(255,255,255,0.45); font-size:0.9em;\">No products added yet. Open admin panel to add your first drop.</p>';
+    return;
+  }
+
   picks.forEach(p => {
     const a = document.createElement('a');
     a.href = 'shop.html#' + p.category;
     a.style.cssText = 'text-align:center; text-decoration:none; transition:all 0.2s; width:160px;';
     a.innerHTML = `
-      <img src="${getProductImageSrc(p.img, 320, 320)}"
-           style="width:160px;height:160px;object-fit:cover;border-radius:8px;
+      <img src=\"${getProductImageSrc(p.img, 320, 320)}\"
+           style=\"width:160px;height:160px;object-fit:cover;border-radius:8px;
                   border:2px solid rgba(0,0,0,0.15);
                   box-shadow:0px 3px 6px rgba(0,0,0,0.2),inset 0px 1px 1px rgba(255,255,255,0.15);
-                  margin-bottom:8px;display:block;">
-      <div style="font-size:0.9em;color:rgba(255,255,255,0.8);text-shadow:0px -1px 1px rgba(0,0,0,0.2);">${p.name}</div>
-      <div style="font-size:1em;color:#ffb0cc;font-weight:500;text-shadow:0px -1px 1px rgba(0,0,0,0.2);">$${p.price}</div>
+                  margin-bottom:8px;display:block;\">
+      <div style=\"font-size:0.9em;color:rgba(255,255,255,0.8);text-shadow:0px -1px 1px rgba(0,0,0,0.2);\">${p.name}</div>
+      <div style=\"font-size:1em;color:#ffb0cc;font-weight:500;text-shadow:0px -1px 1px rgba(0,0,0,0.2);\">$${Number(p.price || 0).toFixed(2)}</div>
+      ${p.status && p.status !== 'available' ? `<div style=\"font-size:0.72em;color:rgba(255,210,150,0.85);margin-top:4px;\">${productStatusLabel(p.status)}</div>` : ''}
     `;
     a.onmouseenter = () => { a.style.filter = 'brightness(90%)'; a.style.transform = 'scale(1.02)'; };
     a.onmouseleave = () => { a.style.filter = ''; a.style.transform = ''; };

@@ -143,10 +143,17 @@ let currentOrder = null;
 let lastCustomerProfile = null;
 
 document.addEventListener('DOMContentLoaded', () => {
+ initCheckout();
+});
+
+async function initCheckout() {
+ await Products.refresh();
+ await Cart.syncWithInventory();
  const cart = Cart.get();
  if (cart.length === 0) {
- window.location.href = 'cart.html';
- return;
+  showToast('Cart is empty or products are no longer available.');
+  window.location.href = 'cart.html';
+  return;
  }
 
  const si = document.getElementById('summaryItems');
@@ -168,7 +175,7 @@ document.addEventListener('DOMContentLoaded', () => {
  document.getElementById('sumTotal').textContent = '$' + (subtotal + 5.99).toFixed(2);
 
  document.getElementById('continueBtn').addEventListener('click', handleContinue);
-});
+}
 
 function getFormData() {
  return {
@@ -189,7 +196,17 @@ function isValidEmail(email) {
 }
 
 async function handleContinue() {
+ await Products.refresh();
+ await Cart.syncWithInventory();
+
  const d = getFormData();
+ const latestCart = Cart.get();
+ if (latestCart.length === 0) {
+  showToast('Your cart has no available items.');
+  window.location.href = 'cart.html';
+  return;
+ }
+
  if (!d.first || !d.last || !d.phone || !d.contact || !d.email) {
  showToast('Please fill in name, phone, Instagram handle, and email.');
  return;
@@ -321,10 +338,17 @@ async function handleCOD() {
 
  const d = getFormData();
  const cart = Cart.get();
+ if (cart.length === 0) {
+  showToast('Your cart has no available items.');
+  window.location.href = 'cart.html';
+  return;
+ }
  const subtotal = Cart.total();
  const orderText = buildOrderText(d, cart, subtotal);
  const total = subtotal + 5.99;
  const orderName = cart.map(i => i.name).join(', ');
+ const productIds = cart.map(i => i.id).filter(Boolean);
+ const productNames = cart.map(i => i.name).filter(Boolean);
 
  currentOrder = Orders.create({
  type: 'cod',
@@ -342,6 +366,8 @@ async function handleCOD() {
  firstOrder: !(lastCustomerProfile && lastCustomerProfile.returning),
  latestOrderStatus: (lastCustomerProfile && lastCustomerProfile.latestOrderStatus) || '',
  orderName,
+ productIds,
+ productNames,
  paymentMode: 'cod',
  amount: '$' + total.toFixed(2),
  screenshot: '',
@@ -358,10 +384,17 @@ async function handleCOD() {
 async function handleOnline() {
  const d = getFormData();
  const cart = Cart.get();
+ if (cart.length === 0) {
+  showToast('Your cart has no available items.');
+  window.location.href = 'cart.html';
+  return;
+ }
  const subtotal = Cart.total();
  const orderText = buildOrderText(d, cart, subtotal);
  const total = subtotal + 5.99;
  const orderName = cart.map(i => i.name).join(', ');
+ const productIds = cart.map(i => i.id).filter(Boolean);
+ const productNames = cart.map(i => i.name).filter(Boolean);
 
  currentOrder = Orders.create({
  type: 'online',
@@ -379,6 +412,8 @@ async function handleOnline() {
  firstOrder: !(lastCustomerProfile && lastCustomerProfile.returning),
  latestOrderStatus: (lastCustomerProfile && lastCustomerProfile.latestOrderStatus) || '',
  orderName,
+ productIds,
+ productNames,
  paymentMode: 'prepaid',
  amount: '$' + total.toFixed(2),
  screenshot: '',
@@ -392,10 +427,17 @@ async function handleOnline() {
 async function handleFirstTimeDelivery() {
  const d = getFormData();
  const cart = Cart.get();
+ if (cart.length === 0) {
+  showToast('Your cart has no available items.');
+  window.location.href = 'cart.html';
+  return;
+ }
  const subtotal = Cart.total();
  const orderText = buildOrderText(d, cart, subtotal);
  const total = subtotal + 5.99;
  const orderName = cart.map(i => i.name).join(', ');
+ const productIds = cart.map(i => i.id).filter(Boolean);
+ const productNames = cart.map(i => i.name).filter(Boolean);
 
  currentOrder = Orders.create({
  type: 'first_time_delivery',
@@ -413,6 +455,8 @@ async function handleFirstTimeDelivery() {
  firstOrder: true,
  latestOrderStatus: 'first_order',
  orderName,
+ productIds,
+ productNames,
  paymentMode: 'prepaid',
  amount: 'Rs 300',
  screenshot: '',

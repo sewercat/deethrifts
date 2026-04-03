@@ -70,7 +70,10 @@
 <div class="toast-msg" id="toastEl"></div>
 <script src="cart.js"></script>
 <script>
-function renderCart() {
+async function renderCart() {
+ await Products.refresh();
+ await Cart.syncWithInventory();
+
  const cart = Cart.get();
  const content = document.getElementById('cartContent');
 
@@ -130,7 +133,7 @@ function renderCart() {
 }
 
 function removeItem(id) { Cart.remove(id); renderCart(); }
-document.addEventListener('DOMContentLoaded', renderCart);
+document.addEventListener('DOMContentLoaded', () => { renderCart(); });
 </script>
 </body>
 </html>

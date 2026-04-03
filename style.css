@@ -217,6 +217,10 @@ input, select, textarea { font-family: inherit; }
  cursor: pointer; transition: all 0.2s; color: rgba(255,255,255,0.75); line-height: 1;
 }
 .shop-card-add:hover { color: #ffd0e0; background: linear-gradient(180deg, rgba(255,150,185,0.3) 0%, rgba(255,120,160,0.4) 100%); }
+.shop-card-add.disabled {
+ opacity: 0.45;
+ cursor: not-allowed;
+}
 .shop-card-condition {
  position: absolute; top: 8px; left: 8px;
  font-size: 0.65em; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em;
@@ -227,6 +231,31 @@ input, select, textarea { font-family: inherit; }
 .shop-card-condition.good {
  background: linear-gradient(180deg, rgba(180,190,200,0.35), rgba(140,150,160,0.15));
  color: #c8d0d8;
+}
+.shop-card-status {
+ position: absolute;
+ right: 8px;
+ top: 8px;
+ font-size: 0.62em;
+ font-weight: 600;
+ text-transform: uppercase;
+ letter-spacing: 0.04em;
+ padding: 3px 7px;
+ border-radius: 4px;
+ z-index: 4;
+ color: #ffd9e6;
+ background: linear-gradient(180deg, rgba(255,160,190,0.35), rgba(255,130,170,0.15));
+}
+.shop-card-status.confirmation_pending {
+ color: #ffe4ad;
+ background: linear-gradient(180deg, rgba(255,200,110,0.35), rgba(220,150,40,0.15));
+}
+.shop-card-status.sold_out {
+ color: #d2d8dd;
+ background: linear-gradient(180deg, rgba(180,190,200,0.35), rgba(120,130,140,0.15));
+}
+.shop-card-disabled {
+ filter: saturate(0.8);
 }
 .shop-grid { display: flex; flex-wrap: wrap; gap: 16px; padding: 16px; justify-content: center; }
 

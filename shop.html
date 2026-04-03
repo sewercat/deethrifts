@@ -3,7 +3,7 @@
 <head>
  <meta charset="UTF-8">
  <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>Shop deethrifts</title>
+ <title>Shop - deethrifts</title>
  <link rel="stylesheet" href="style.css">
 </head>
 <body data-page="shop">
@@ -30,7 +30,7 @@
 
  <div id="viewCategories">
  <div class="glass-body r-top r-bot" style="padding:0; flex-direction:column;">
- <div class="section-label"> Browse Categories</div>
+ <div class="section-label">Browse Categories</div>
  <div class="cat-grid" id="catGrid"></div>
  </div>
  </div>
@@ -38,7 +38,7 @@
  <div id="viewProducts" style="display:none;">
  <div class="glass-body r-top r-bot" style="padding:0; flex-direction:column;">
  <div style="display:flex; align-items:center; border-bottom:1px solid rgba(255,255,255,0.06); padding-right:14px;">
- <button class="back-btn" id="backBtn"> Back</button>
+ <button class="back-btn" id="backBtn">Back</button>
  <div class="section-label" id="productSectionLabel" style="border:none; padding-left:0; padding-bottom:10px;"></div>
  </div>
  <div class="shop-grid" id="productGrid"></div>
@@ -49,7 +49,7 @@
 
  <div class="glass-header r-all" style="padding:0;">
  <div class="footer-content">
- <span>(c) 2025 <span class="logo-text">dee<span class="pink">thrifts</span></span> all items are pre-owned and sold as-is</span>
+ <span>(c) 2025 <span class="logo-text">dee<span class="pink">thrifts</span></span> - all items are pre-owned and sold as-is</span>
  </div>
  </div>
  <div class="spacer-md"></div>
@@ -58,49 +58,69 @@
 <div class="toast-msg" id="toastEl"></div>
 <script src="cart.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', () => {
- const catGrid = document.getElementById('catGrid');
+let cachedCategories = [];
 
- CATEGORIES.forEach(cat => {
- const card = document.createElement('div');
- card.className = 'cat-card';
- card.innerHTML = `
- <img src="https://picsum.photos/seed/${cat.img}/440/360.jpg" alt="${cat.label}">
- <div class="cat-card-label">
- ${cat.label}
- <span class="cat-card-count">${getCountByCategory(cat.key)} items</span>
- </div>
- `;
- card.addEventListener('click', () => showCategory(cat.key, cat.label));
- catGrid.appendChild(card);
- });
+document.addEventListener('DOMContentLoaded', async () => {
+  await Products.refresh();
+  await Cart.syncWithInventory();
+  renderCategories();
 
- document.getElementById('backBtn').addEventListener('click', showCategoryView);
+  document.getElementById('backBtn').addEventListener('click', showCategoryView);
 
- const hash = window.location.hash.replace('#', '');
- if (hash && CATEGORIES.find(c => c.key === hash)) {
- showCategory(hash, CATEGORIES.find(c => c.key === hash).label);
- }
+  const hash = window.location.hash.replace('#', '');
+  const match = cachedCategories.find(c => c.key === hash);
+  if (match) showCategory(match.key, match.label);
 });
 
+function renderCategories() {
+  const catGrid = document.getElementById('catGrid');
+  catGrid.innerHTML = '';
+  cachedCategories = getCategories();
+
+  if (cachedCategories.length === 0) {
+    catGrid.innerHTML = '<p style="color:rgba(255,255,255,0.45); font-size:0.9em;">No products available right now.</p>';
+    return;
+  }
+
+  cachedCategories.forEach(cat => {
+    const card = document.createElement('div');
+    card.className = 'cat-card';
+    card.innerHTML = `
+      <img src="${getProductImageSrc(cat.img, 440, 360)}" alt="${cat.label}">
+      <div class="cat-card-label">
+        ${cat.label}
+        <span class="cat-card-count">${getCountByCategory(cat.key)} items</span>
+      </div>
+    `;
+    card.addEventListener('click', () => showCategory(cat.key, cat.label));
+    catGrid.appendChild(card);
+  });
+}
+
 function showCategory(key, label) {
- document.getElementById('viewCategories').style.display = 'none';
- document.getElementById('viewProducts').style.display = 'block';
- document.getElementById('productSectionLabel').textContent = label;
+  document.getElementById('viewCategories').style.display = 'none';
+  document.getElementById('viewProducts').style.display = 'block';
+  document.getElementById('productSectionLabel').textContent = label;
 
- const grid = document.getElementById('productGrid');
- grid.innerHTML = '';
- getByCategory(key).forEach(p => grid.appendChild(buildCard(p)));
+  const grid = document.getElementById('productGrid');
+  grid.innerHTML = '';
+  const products = getByCategory(key);
 
- window.scrollTo({ top: 0, behavior: 'smooth' });
- window.location.hash = key;
+  if (products.length === 0) {
+    grid.innerHTML = '<p style="color:rgba(255,255,255,0.45); font-size:0.9em;">No products in this category.</p>';
+  } else {
+    products.forEach(p => grid.appendChild(buildCard(p)));
+  }
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  window.location.hash = key;
 }
 
 function showCategoryView() {
- document.getElementById('viewProducts').style.display = 'none';
- document.getElementById('viewCategories').style.display = 'block';
- history.replaceState(null, '', window.location.pathname);
- window.scrollTo({ top: 0, behavior: 'smooth' });
+  document.getElementById('viewProducts').style.display = 'none';
+  document.getElementById('viewCategories').style.display = 'block';
+  history.replaceState(null, '', window.location.pathname);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 </script>
 </body>
