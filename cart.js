@@ -42,34 +42,46 @@ function jsonpGet(url) {
   });
 }
 
+// Replace the entire jsonpGet and apiGetJson functions with:
+
 async function apiGetJson(params) {
   const url = buildApiUrl(params);
+  
   try {
-    return await jsonpGet(url);
-  } catch (_) {
+    // First try normal fetch (works if CORS is configured)
     const res = await fetch(url);
     if (!res.ok) throw new Error('HTTP ' + res.status);
     return await res.json();
+  } catch (e) {
+    // If fetch fails, try with no-cors mode (fire-and-forget)
+    console.warn('GET failed, trying no-cors:', e);
+    await fetch(url, { mode: 'no-cors' });
+    return { ok: true, queued: true, corsBypass: true };
   }
 }
 
 async function apiPostJson(body) {
   const url = buildApiUrl({});
-  const req = {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(body || {})
-  };
-
+  
+  // Try CORS fetch first
   try {
-    // Prefer no-cors for GitHub Pages + Apps Script to avoid CORS blocks on response reading.
-    await fetch(url, { ...req, mode: 'no-cors' });
-    return { ok: true, queued: true, corsBypass: true };
-  } catch (_) {
-    // Fallback: if no-cors is blocked by policy, try standard CORS fetch.
-    const res = await fetch(url, req);
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body || {})
+    });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     return await res.json();
+  } catch (e) {
+    // Fallback to no-cors mode
+    console.warn('POST CORS failed, trying no-cors:', e);
+    await fetch(url, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(body || {})
+    });
+    return { ok: true, queued: true, corsBypass: true };
   }
 }
 

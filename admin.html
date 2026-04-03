@@ -550,90 +550,75 @@ function clearDrafts() {
 
 async function postProduct(productDraft) {
   const firstImage = (productDraft.images && productDraft.images[0]) ? productDraft.images[0] : null;
-  const firstUrl   = (productDraft.imageUrls && productDraft.imageUrls[0]) ? productDraft.imageUrls[0] : '';
-  const tagsCsv      = (productDraft.tags || ['new']).join(',');
+  const firstUrl = (productDraft.imageUrls && productDraft.imageUrls[0]) ? productDraft.imageUrls[0] : '';
+  const tagsCsv = (productDraft.tags || ['new']).join(',');
   const imageUrlsCsv = (productDraft.imageUrls || []).join(',');
 
-  // Step 1: Add via JSONP GET (works cross-origin without CORS issues)
-  try {
-    const createRes = await window.DEE_API.getJson({
-      action: 'add_product',
-      productId:    productDraft.productId,
-      id:           productDraft.productId,
-      name:         productDraft.name,
-      garmentType:  productDraft.garmentType,
-      category:     productDraft.category,
-      tags:         tagsCsv,
-      cond:         productDraft.cond,
-      price:        String(productDraft.price),
-      measurements: productDraft.measurements,
-      meta:         productDraft.measurements,
-      imageUrls:    imageUrlsCsv
-    });
+  console.log('Posting product:', {
+    name: productDraft.name,
+    id: productDraft.productId,
+    hasImages: productDraft.images?.length,
+    imageUrls: productDraft.imageUrls
+  });
 
-    if (createRes && createRes.ok === true) {
-      // Product written to sheet — fire-and-forget POST only if there are image blobs to upload
-      if (productDraft.images && productDraft.images.length > 0) {
-        window.DEE_API.postJson({
-          type: 'add_product',
-          product: {
-            productId:       productDraft.productId,
-            images:          productDraft.images,
-            imageDataUrl:    firstImage ? firstImage.imageDataUrl   : '',
-            imageFileName:   firstImage ? firstImage.imageFileName  : ''
-          }
-        }).catch(e => console.warn('Image upload POST failed:', e));
-      }
-      return true; // ← KEY FIX: trust the ok:true response, don't re-verify
-    }
-  } catch (e) {
-    console.warn('GET add_product failed:', e);
-  }
-
-  // Step 2: Fall back to POST (no-cors, fire-and-forget)
+  // Use POST for everything (more reliable)
   const payload = {
     type: 'add_product',
     product: {
-      productId:     productDraft.productId,
-      id:            productDraft.productId,
-      name:          productDraft.name,
-      garmentType:   productDraft.garmentType,
-      category:      productDraft.category,
-      tags:          productDraft.tags || ['new'],
-      cond:          productDraft.cond,
-      price:         productDraft.price,
-      measurements:  productDraft.measurements,
-      meta:          productDraft.measurements,
-      quantity:      1,
-      imageUrls:     productDraft.imageUrls || [],
-      images:        productDraft.images    || [],
-      imageUrl:      firstUrl,
-      imageDataUrl:  firstImage ? firstImage.imageDataUrl  : '',
+      productId: productDraft.productId,
+      id: productDraft.productId,
+      name: productDraft.name,
+      garmentType: productDraft.garmentType,
+      category: productDraft.category,
+      tags: productDraft.tags || ['new'],
+      cond: productDraft.cond,
+      price: productDraft.price,
+      measurements: productDraft.measurements,
+      meta: productDraft.measurements,
+      quantity: 1,
+      imageUrls: productDraft.imageUrls || [],
+      imageUrl: firstUrl,
+      imageDataUrl: firstImage ? firstImage.imageDataUrl : '',
       imageFileName: firstImage ? firstImage.imageFileName : ''
     }
   };
 
+  // Add image blobs if present
+  if (productDraft.images && productDraft.images.length > 0) {
+    payload.product.images = productDraft.images;
+  }
+
   try {
-    await window.DEE_API.postJson(payload);
+    const result = await window.DEE_API.postJson(payload);
+    
+    // Check if POST succeeded
+    if (result && (result.ok === true || result.queued === true)) {
+      // Wait a moment for Apps Script to process
+      await new Promise(r => setTimeout(r, 2000));
+      
+      // Verify the product was added
+      await Products.refresh();
+      const exists = getAllProducts().some(p => 
+        p.id === productDraft.productId ||
+        (p.name === productDraft.name && 
+         Number(p.price) === Number(productDraft.price))
+      );
+      
+      if (exists) return true;
+      
+      // One more retry with verification
+      await new Promise(r => setTimeout(r, 3000));
+      await Products.refresh();
+      const existsAgain = getAllProducts().some(p => p.id === productDraft.productId);
+      return existsAgain;
+    }
+    
+    console.error('POST returned:', result);
+    return false;
   } catch (e) {
-    console.warn('POST add_product failed:', e);
+    console.error('POST failed:', e);
     return false;
   }
-
-  // Step 3: Verify POST worked by polling (only reached if GET failed)
-  for (let i = 0; i < 8; i++) {
-    await new Promise(r => setTimeout(r, 1000));
-    try { await Products.refresh(); } catch (_) {}
-    const exists = getAllProducts().some(p =>
-      p.id === productDraft.productId ||
-      (p.name === productDraft.name &&
-       Number(p.price || 0) === Number(productDraft.price || 0) &&
-       p.category === productDraft.category)
-    );
-    if (exists) return true;
-  }
-
-  return false;
 }
 
 async function renderProducts() {
