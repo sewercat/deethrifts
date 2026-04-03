@@ -1,508 +1,556 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin — deethrifts</title>
-  <link rel="stylesheet" href="style.css">
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Admin deethrifts</title>
+ <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div id="siteContainer">
-  <div class="spacer-sm"></div>
+ <div class="spacer-sm"></div>
 
-  <!-- ═══════════════════════════════════════ -->
-  <!--  SCREEN 1: SEND OTP                     -->
-  <!-- ═══════════════════════════════════════ -->
-  <div id="otpSendScreen" class="glass-body r-all" style="flex-direction:column;">
-    <div class="admin-gate">
-      <h2 style="font-size:1.2em; margin:0;">Admin Access</h2>
-      <p style="text-align:center; max-width:100%; font-size:0.9em;">
-        A one-time code will be sent to your email.
-      </p>
-      <button class="aero-btn pink-btn" style="margin-top:18px; min-width:220px;" id="sendOtpBtn">
-        Send Code to My Email
-      </button>
-      <p id="otpCooldown" style="display:none; font-size:0.78em; color:rgba(255,176,204,0.7); margin-top:12px;">
-        Wait <span id="cooldownSec">60</span>s before requesting again
-      </p>
-    </div>
-  </div>
+ <!-- -->
+ <!-- SCREEN 1: SEND OTP -->
+ <!-- -->
+ <div id="otpSendScreen" class="glass-body r-all" style="flex-direction:column;">
+ <div class="admin-gate">
+ <h2 style="font-size:1.2em; margin:0;">Admin Access</h2>
+ <p style="text-align:center; max-width:100%; font-size:0.9em;">
+ A one-time code will be sent to your email.
+ </p>
+ <button class="aero-btn pink-btn" style="margin-top:18px; min-width:220px;" id="sendOtpBtn">
+ Send Code to My Email
+ </button>
+ <p id="otpCooldown" style="display:none; font-size:0.78em; color:rgba(255,176,204,0.7); margin-top:12px;">
+ Wait <span id="cooldownSec">60</span>s before requesting again
+ </p>
+ </div>
+ </div>
 
-  <!-- ═══════════════════════════════════════ -->
-  <!--  SCREEN 2: ENTER OTP                     -->
-  <!-- ═══════════════════════════════════════ -->
-  <div id="otpEnterScreen" style="display:none;" class="glass-body r-all" style="flex-direction:column;">
-    <div class="admin-gate">
-      <h2 style="font-size:1.2em; margin:0;">Enter Code</h2>
-      <p style="text-align:center; max-width:100%; font-size:0.9em;">
-        Check your email and enter the 6-digit code.
-      </p>
-      <input class="glass-input" id="otpInput" type="text" maxlength="6" placeholder="000000"
-             style="text-align:center; font-size:1.8em; letter-spacing:0.3em; margin-top:16px; max-width:200px;">
-      <div style="display:flex; gap:10px; margin-top:14px;">
-        <button class="aero-btn pink-btn" id="verifyOtpBtn">Verify →</button>
-        <button class="aero-btn" id="resendOtpBtn" style="display:none;">Resend</button>
-      </div>
-      <p id="otpError" style="display:none; font-size:0.82em; color:rgba(255,100,100,0.8); margin-top:12px;"></p>
-    </div>
-  </div>
+ <!-- -->
+ <!-- SCREEN 2: ENTER OTP -->
+ <!-- -->
+ <div id="otpEnterScreen" style="display:none;" class="glass-body r-all" style="flex-direction:column;">
+ <div class="admin-gate">
+ <h2 style="font-size:1.2em; margin:0;">Enter Code</h2>
+ <p style="text-align:center; max-width:100%; font-size:0.9em;">
+ Check your email and enter the 6-digit code.
+ </p>
+ <input class="glass-input" id="otpInput" type="text" maxlength="6" placeholder="000000"
+ style="text-align:center; font-size:1.8em; letter-spacing:0.3em; margin-top:16px; max-width:200px;">
+ <div style="display:flex; gap:10px; margin-top:14px;">
+ <button class="aero-btn pink-btn" id="verifyOtpBtn">Verify </button>
+ <button class="aero-btn" id="resendOtpBtn" style="display:none;">Resend</button>
+ </div>
+ <p id="otpError" style="display:none; font-size:0.82em; color:rgba(255,100,100,0.8); margin-top:12px;"></p>
+ </div>
+ </div>
 
-  <!-- ═══════════════════════════════════════ -->
-  <!--  SCREEN 3: ADMIN PANEL                  -->
-  <!-- ═══════════════════════════════════════ -->
-  <div id="adminPanel" style="display:none;">
-    <div class="glass-header r-top flex-center" style="padding:10px 16px;">
-      <h2 style="font-size:1.1em; margin:0;">Admin Panel</h2>
-    </div>
+ <!-- -->
+ <!-- SCREEN 3: ADMIN PANEL -->
+ <!-- -->
+ <div id="adminPanel" style="display:none;">
+ <div class="glass-header r-top flex-center" style="padding:10px 16px;">
+ <h2 style="font-size:1.1em; margin:0;">Admin Panel</h2>
+ </div>
 
-    <div class="glass-body r-bot" style="flex-direction:column; padding:0;">
+ <div class="glass-body r-bot" style="flex-direction:column; padding:0;">
 
-      <!-- ADD ITEM -->
-      <div class="admin-section" style="border-bottom:1px solid rgba(255,255,255,0.06);">
-        <div class="admin-section-title">Add New Item</div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Item Name</label>
-            <input class="glass-input" id="a-name" type="text" placeholder="Vintage Wool Blazer">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Category</label>
-            <select class="glass-input" id="a-cat">
-              <option value="new">New Arrivals</option>
-              <option value="dresses">Dresses</option>
-              <option value="tops">Tops</option>
-              <option value="bottoms">Bottoms</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Meta (size, era, etc.)</label>
-            <input class="glass-input" id="a-meta" type="text" placeholder="Size M · 1980s">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Price ($)</label>
-            <input class="glass-input" id="a-price" type="number" placeholder="25" min="1">
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Condition</label>
-            <select class="glass-input" id="a-cond">
-              <option value="great">Great</option>
-              <option value="good">Good</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Image Seed (for picsum)</label>
-            <input class="glass-input" id="a-img" type="text" placeholder="my-blazer-1">
-            <p style="font-size:0.7em; color:rgba(255,255,255,0.25); margin-top:4px;">
-              Unique word per item — becomes the placeholder image seed.
-            </p>
-          </div>
-        </div>
-        <button class="aero-btn" id="addItemBtn" style="margin-top:4px;">+ Add to Drafts</button>
-      </div>
+ <!-- ADD ITEM -->
+ <div class="admin-section" style="border-bottom:1px solid rgba(255,255,255,0.06);">
+ <div class="admin-section-title">Add New Item</div>
+ <div class="form-row">
+ <div class="form-group">
+ <label class="form-label">Item Name</label>
+ <input class="glass-input" id="a-name" type="text" placeholder="Vintage Wool Blazer">
+ </div>
+ <div class="form-group">
+ <label class="form-label">Category</label>
+ <select class="glass-input" id="a-cat">
+ <option value="new">New Arrivals</option>
+ <option value="dresses">Dresses</option>
+ <option value="tops">Tops</option>
+ <option value="bottoms">Bottoms</option>
+ </select>
+ </div>
+ </div>
+ <div class="form-row">
+ <div class="form-group">
+ <label class="form-label">Meta (size, era, etc.)</label>
+ <input class="glass-input" id="a-meta" type="text" placeholder="Size M - 1980s">
+ </div>
+ <div class="form-group">
+ <label class="form-label">Price ($)</label>
+ <input class="glass-input" id="a-price" type="number" placeholder="25" min="1">
+ </div>
+ </div>
+ <div class="form-row">
+ <div class="form-group">
+ <label class="form-label">Condition</label>
+ <select class="glass-input" id="a-cond">
+ <option value="great">Great</option>
+ <option value="good">Good</option>
+ </select>
+ </div>
+ <div class="form-group">
+ <label class="form-label">Image URL or Seed</label>
+ <input class="glass-input" id="a-img" type="text" placeholder="https://... or my-blazer-1">
+ <input class="glass-input" id="a-img-file" type="file" accept="image/*" style="margin-top:8px;">
+ <p style="font-size:0.7em; color:rgba(255,255,255,0.25); margin-top:4px;">
+ Paste an image URL, use a seed, or pick a file (stored in browser data).
+ </p>
+ </div>
+ </div>
+ <button class="aero-btn" id="addItemBtn" style="margin-top:4px;">+ Add to Drafts</button>
+ </div>
 
-      <!-- DRAFTS -->
-      <div class="admin-section" style="border-bottom:1px solid rgba(255,255,255,0.06);">
-        <div class="admin-section-title">
-          Draft Items <span class="draft-count" id="draftCount">0</span>
-        </div>
-        <div id="draftList"><p style="font-size:0.85em; color:rgba(255,255,255,0.3);">No drafts yet.</p></div>
-        <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
-          <button class="aero-btn pink-btn" id="releaseBtn">✦ Release All Drafts</button>
-          <button class="aero-btn" id="exportBtn">📋 Export as Code</button>
-        </div>
-        <div id="codeOutput" style="display:none; margin-top:14px;">
-          <div class="admin-section-title">Generated Code</div>
-          <div class="code-output" id="codeText"></div>
-          <button class="aero-btn" style="margin-top:8px; font-size:0.82em;" onclick="copyCode()">📋 Copy to Clipboard</button>
-        </div>
-      </div>
+ <!-- DRAFTS -->
+ <div class="admin-section" style="border-bottom:1px solid rgba(255,255,255,0.06);">
+ <div class="admin-section-title">
+ Draft Items <span class="draft-count" id="draftCount">0</span>
+ </div>
+ <div id="draftList"><p style="font-size:0.85em; color:rgba(255,255,255,0.3);">No drafts yet.</p></div>
+ <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+ <button class="aero-btn pink-btn" id="releaseBtn"> Release All Drafts</button>
+ <button class="aero-btn" id="exportBtn"> Export as Code</button>
+ </div>
+ <div id="codeOutput" style="display:none; margin-top:14px;">
+ <div class="admin-section-title">Generated Code</div>
+ <div class="code-output" id="codeText"></div>
+ <button class="aero-btn" style="margin-top:8px; font-size:0.82em;" onclick="copyCode()"> Copy to Clipboard</button>
+ </div>
+ </div>
 
-      <!-- LIVE ITEMS -->
-      <div class="admin-section" style="border-bottom:1px solid rgba(255,255,255,0.06);">
-        <div class="admin-section-title">
-          Live Items <span class="draft-count" id="liveCount">0</span>
-        </div>
-        <div id="liveList"><p style="font-size:0.85em; color:rgba(255,255,255,0.3);">No custom live items.</p></div>
-      </div>
+ <!-- LIVE ITEMS -->
+ <div class="admin-section" style="border-bottom:1px solid rgba(255,255,255,0.06);">
+ <div class="admin-section-title">
+ Live Items <span class="draft-count" id="liveCount">0</span>
+ </div>
+ <div id="liveList"><p style="font-size:0.85em; color:rgba(255,255,255,0.3);">No custom live items.</p></div>
+ </div>
 
-      <!-- CUSTOMERS -->
-      <div class="admin-section" style="border-bottom:1px solid rgba(255,255,255,0.06);">
-        <div class="admin-section-title">
-          Known Customers <span class="draft-count" id="custCount">0</span>
-        </div>
-        <div id="custList"><p style="font-size:0.85em; color:rgba(255,255,255,0.3);">Loading...</p></div>
-      </div>
+ <!-- CUSTOMERS -->
+ <div class="admin-section" style="border-bottom:1px solid rgba(255,255,255,0.06);">
+ <div class="admin-section-title">
+ Known Customers <span class="draft-count" id="custCount">0</span>
+ </div>
+ <div id="custList"><p style="font-size:0.85em; color:rgba(255,255,255,0.3);">Loading...</p></div>
+ </div>
 
-      <!-- PENDING ORDERS -->
-      <div class="admin-section" style="border-bottom:1px solid rgba(255,255,255,0.06);">
-        <div class="admin-section-title">
-          Pending Orders <span class="draft-count" id="orderCount">0</span>
-        </div>
-        <div id="orderList"><p style="font-size:0.85em; color:rgba(255,255,255,0.3);">No pending orders.</p></div>
-        <p style="font-size:0.72em; color:rgba(255,255,255,0.25); margin-top:8px;">
-          <strong style="color:rgba(37,211,102,0.6);">Green button:</strong> Confirm order + send WhatsApp<br>
-          <strong style="color:rgba(100,200,140,0.6);">Gray button:</strong> Mark done without WhatsApp
-        </p>
-      </div>
+ <!-- PENDING ORDERS -->
+ <div class="admin-section" style="border-bottom:1px solid rgba(255,255,255,0.06);">
+ <div class="admin-section-title">
+ Pending Orders <span class="draft-count" id="orderCount">0</span>
+ </div>
+ <div id="orderList"><p style="font-size:0.85em; color:rgba(255,255,255,0.3);">No pending orders.</p></div>
+ <p style="font-size:0.72em; color:rgba(255,255,255,0.25); margin-top:8px;">
+ <strong style="color:rgba(37,211,102,0.6);">Green button:</strong> Confirm order + send WhatsApp<br>
+ <strong style="color:rgba(100,200,140,0.6);">Gray button:</strong> Mark done without WhatsApp
+ </p>
+ </div>
 
-      <!-- NOTE -->
-      <div class="admin-section">
-        <div class="admin-note">
-          <strong style="color:rgba(255,180,100,0.7);">OTP Security:</strong> Each code is single-use, expires in 5 minutes, and is deleted after verification. Even if someone requests a code, it gets sent to <strong>your</strong> email — they can't see it.<br><br>
-          <strong style="color:rgba(255,180,100,0.7);">Items:</strong> Use "Export as Code" and paste into DEFAULT_PRODUCTS in cart.js, then re-upload to GitHub for items to appear for all visitors.
-        </div>
-      </div>
+ <!-- NOTE -->
+ <div class="admin-section">
+ <div class="admin-note">
+ <strong style="color:rgba(255,180,100,0.7);">OTP Security:</strong> Each code is single-use, expires in 5 minutes, and is deleted after verification. Even if someone requests a code, it gets sent to <strong>your</strong> email they can't see it.<br><br>
+ <strong style="color:rgba(255,180,100,0.7);">Items:</strong> Use "Export as Code" and paste into DEFAULT_PRODUCTS in cart.js, then re-upload to GitHub for items to appear for all visitors.
+ </div>
+ </div>
 
-    </div>
-  </div>
+ </div>
+ </div>
 
-  <div class="spacer-md"></div>
+ <div class="spacer-md"></div>
 </div>
 
 <div class="toast-msg" id="toastEl"></div>
 
 <script src="cart.js"></script>
 <script>
-// ══════════════════════════════════════════
-//  CONFIG — CHANGE THESE TWO VALUES
-// ══════════════════════════════════════════
+// 
+// CONFIG CHANGE THESE TWO VALUES
+// 
 const ADMIN_EMAIL = "brrrr228626@gmail.com";
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby4GFix50mKnAHSpDGi-WQU6emttDYLDu3usIyqK6ncTtFJKbqfKND_wJLHeI_UF3J8/exec";
 const OTP_EXPIRY_MINUTES = 5;
 const COOLDOWN_SECONDS = 60;
+let uploadedDraftImage = "";
 
-// ══════════════════════════════════════════
-//  OTP LOGIC (Google Sheets, no Firebase)
-// ══════════════════════════════════════════
+// 
+// OTP LOGIC (Google Sheets, no Firebase)
+// 
 const OTP = {
-  generate() {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-  },
+ generate() {
+ return Math.floor(100000 + Math.random() * 900000).toString();
+ },
 
-  async send(phone) {
-    const code = this.generate();
-    try {
-      await fetch(GOOGLE_SCRIPT_URL + '?redirect=false', {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ type: 'otp', code: code, expires: OTP_EXPIRY_MINUTES })
-      });
-    } catch(e) {
-      console.warn('OTP email failed:', e);
-    }
-    return code;
-  },
+ async send(phone) {
+ const code = this.generate();
+ try {
+ await fetch(GOOGLE_SCRIPT_URL + '?redirect=false', {
+ method: 'POST',
+ headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+ body: JSON.stringify({ type: 'otp', code: code, expires: OTP_EXPIRY_MINUTES })
+ });
+ } catch(e) {
+ console.warn('OTP email failed:', e);
+ }
+ return code;
+ },
 
-  async verify(code) {
-    try {
-      const res = await fetch(GOOGLE_SCRIPT_URL + '?redirect=false&action=verify&code=' + encodeURIComponent(code.trim()));
-      const data = await res.json();
-      return data;
-    } catch(e) {
-      return { valid: false, reason: 'Connection error' };
-    }
-  }
+ async verify(code) {
+ try {
+ const res = await fetch(GOOGLE_SCRIPT_URL + '?redirect=false&action=verify&code=' + encodeURIComponent(code.trim()));
+ const data = await res.json();
+ return data;
+ } catch(e) {
+ return { valid: false, reason: 'Connection error' };
+ }
+ }
 };
 
-// ══════════════════════════════════════════
-//  SCREEN MANAGEMENT
-// ══════════════════════════════════════════
+// 
+// SCREEN MANAGEMENT
+// 
 function showScreen(name) {
-  document.getElementById('otpSendScreen').style.display = name === 'send' ? 'flex' : 'none';
-  document.getElementById('otpEnterScreen').style.display = name === 'enter' ? 'flex' : 'none';
-  document.getElementById('adminPanel').style.display = name === 'admin' ? 'block' : 'none';
+ document.getElementById('otpSendScreen').style.display = name === 'send' ? 'flex' : 'none';
+ document.getElementById('otpEnterScreen').style.display = name === 'enter' ? 'flex' : 'none';
+ document.getElementById('adminPanel').style.display = name === 'admin' ? 'block' : 'none';
 }
 
-// ══════════════════════════════════════════
-//  SEND OTP
-// ══════════════════════════════════════════
+// 
+// SEND OTP
+// 
 document.getElementById('sendOtpBtn').addEventListener('click', sendOTP);
 
 async function sendOTP() {
-  const btn = document.getElementById('sendOtpBtn');
-  btn.textContent = 'Sending...';
-  btn.disabled = true;
+ const btn = document.getElementById('sendOtpBtn');
+ btn.textContent = 'Sending...';
+ btn.disabled = true;
 
-  try {
-    const code = await OTP.send();
-    showScreen('enter');
-    document.getElementById('otpInput').value = '';
-    document.getElementById('otpError').style.display = 'none';
-    document.getElementById('otpInput').focus();
-    startCooldown();
-  } catch(e) {
-    showToast('Failed to send code — check your connection ✦');
-    btn.textContent = 'Send Code to My Email';
-    btn.disabled = false;
-  }
+ try {
+ const code = await OTP.send();
+ showScreen('enter');
+ document.getElementById('otpInput').value = '';
+ document.getElementById('otpError').style.display = 'none';
+ document.getElementById('otpInput').focus();
+ startCooldown();
+ } catch(e) {
+ showToast('Failed to send code check your connection ');
+ btn.textContent = 'Send Code to My Email';
+ btn.disabled = false;
+ }
 }
 
-// ══════════════════════════════════════════
-//  VERIFY OTP
-// ══════════════════════════════════════════
+// 
+// VERIFY OTP
+// 
 document.getElementById('verifyOtpBtn').addEventListener('click', verifyOTP);
 document.getElementById('otpInput').addEventListener('keydown', e => { if (e.key === 'Enter') verifyOTP(); });
 
 async function verifyOTP() {
-  const code = document.getElementById('otpInput').value.trim();
-  if (code.length !== 6) {
-    showOtpError('Enter the 6-digit code');
-    return;
-  }
+ const code = document.getElementById('otpInput').value.trim();
+ if (code.length !== 6) {
+ showOtpError('Enter the 6-digit code');
+ return;
+ }
 
-  const btn = document.getElementById('verifyOtpBtn');
-  btn.textContent = 'Verifying...';
-  btn.disabled = true;
+ const btn = document.getElementById('verifyOtpBtn');
+ btn.textContent = 'Verifying...';
+ btn.disabled = true;
 
-  const result = await OTP.verify(code);
+ const result = await OTP.verify(code);
 
-  if (result.valid) {
-    sessionStorage.setItem('dee_admin', '1');
-    showScreen('admin');
-    initAdmin();
-  } else {
-    showOtpError(result.reason === 'expired' ? 'Code expired — request a new one' : 'Wrong code — try again');
-    btn.textContent = 'Verify →';
-    btn.disabled = false;
-    document.getElementById('resendOtpBtn').style.display = 'inline-flex';
-  }
+ if (result.valid) {
+ sessionStorage.setItem('dee_admin', '1');
+ showScreen('admin');
+ initAdmin();
+ } else {
+ showOtpError(result.reason === 'expired' ? 'Code expired request a new one' : 'Wrong code try again');
+ btn.textContent = 'Verify ';
+ btn.disabled = false;
+ document.getElementById('resendOtpBtn').style.display = 'inline-flex';
+ }
 }
 
 function showOtpError(msg) {
-  const el = document.getElementById('otpError');
-  el.textContent = msg;
-  el.style.display = 'block';
+ const el = document.getElementById('otpError');
+ el.textContent = msg;
+ el.style.display = 'block';
 }
 
-// ══════════════════════════════════════════
-//  RESEND OTP
-// ══════════════════════════════════════════
+// 
+// RESEND OTP
+// 
 document.getElementById('resendOtpBtn').addEventListener('click', () => {
-  showScreen('send');
-  // Reset cooldown check
-  const lastSent = parseInt(localStorage.getItem('dee_otp_last') || '0');
-  const elapsed = Math.floor((Date.now() - lastSent) / 1000);
-  if (elapsed < COOLDOWN_SECONDS) {
-    startCooldown(COOLDOWN_SECONDS - elapsed);
-  }
+ showScreen('send');
+ // Reset cooldown check
+ const lastSent = parseInt(localStorage.getItem('dee_otp_last') || '0');
+ const elapsed = Math.floor((Date.now() - lastSent) / 1000);
+ if (elapsed < COOLDOWN_SECONDS) {
+ startCooldown(COOLDOWN_SECONDS - elapsed);
+ }
 });
 
-// ══════════════════════════════════════════
-//  COOLDOWN
-// ══════════════════════════════════════════
+// 
+// COOLDOWN
+// 
 function startCooldown(remaining) {
-  remaining = remaining || COOLDOWN_SECONDS;
-  const btn = document.getElementById('sendOtpBtn');
-  const cooldownEl = document.getElementById('otpCooldown');
-  const secEl = document.getElementById('cooldownSec');
+ remaining = remaining || COOLDOWN_SECONDS;
+ const btn = document.getElementById('sendOtpBtn');
+ const cooldownEl = document.getElementById('otpCooldown');
+ const secEl = document.getElementById('cooldownSec');
 
-  btn.disabled = true;
-  btn.textContent = 'Send Code to My Email';
-  cooldownEl.style.display = 'block';
-  localStorage.setItem('dee_otp_last', Date.now().toString());
+ btn.disabled = true;
+ btn.textContent = 'Send Code to My Email';
+ cooldownEl.style.display = 'block';
+ localStorage.setItem('dee_otp_last', Date.now().toString());
 
-  const timer = setInterval(() => {
-    remaining--;
-    secEl.textContent = remaining;
-    if (remaining <= 0) {
-      clearInterval(timer);
-      btn.disabled = false;
-      cooldownEl.style.display = 'none';
-    }
-  }, 1000);
+ const timer = setInterval(() => {
+ remaining--;
+ secEl.textContent = remaining;
+ if (remaining <= 0) {
+ clearInterval(timer);
+ btn.disabled = false;
+ cooldownEl.style.display = 'none';
+ }
+ }, 1000);
 }
 
-// ══════════════════════════════════════════
-//  ADMIN PANEL
-// ══════════════════════════════════════════
+// 
+// ADMIN PANEL
+// 
 function initAdmin() {
-  renderDrafts();
-  renderLive();
-  renderCustomers();
-  renderOrders();
+ Customers.setUrl(GOOGLE_SCRIPT_URL);
+ Orders.setUrl(GOOGLE_SCRIPT_URL);
 
-  document.getElementById('addItemBtn').addEventListener('click', addItem);
-  document.getElementById('releaseBtn').addEventListener('click', releaseAll);
-  document.getElementById('exportBtn').addEventListener('click', exportCode);
+ renderDrafts();
+ renderLive();
+ renderCustomers();
+ renderOrders();
+
+ document.getElementById('addItemBtn').addEventListener('click', addItem);
+ document.getElementById('releaseBtn').addEventListener('click', releaseAll);
+ document.getElementById('exportBtn').addEventListener('click', exportCode);
+
+ const fileInput = document.getElementById('a-img-file');
+ if (fileInput && !fileInput.dataset.bound) {
+ fileInput.addEventListener('change', handleDraftImageFile);
+ fileInput.dataset.bound = '1';
+ }
+}
+
+function handleDraftImageFile(e) {
+ const file = e.target.files && e.target.files[0];
+ if (!file) {
+ uploadedDraftImage = '';
+ return;
+ }
+ if (file.size > 2 * 1024 * 1024) {
+ showToast('Image too large (max 2MB)');
+ e.target.value = '';
+ uploadedDraftImage = '';
+ return;
+ }
+
+ const reader = new FileReader();
+ reader.onload = ev => {
+ uploadedDraftImage = String(ev.target.result || '');
+ showToast('Image attached to draft');
+ };
+ reader.readAsDataURL(file);
 }
 
 function addItem() {
-  const name = document.getElementById('a-name').value.trim();
-  const meta = document.getElementById('a-meta').value.trim();
-  const price = parseFloat(document.getElementById('a-price').value);
-  const cond = document.getElementById('a-cond').value;
-  const cat  = document.getElementById('a-cat').value;
-  const img  = document.getElementById('a-img').value.trim();
+ const name = document.getElementById('a-name').value.trim();
+ const meta = document.getElementById('a-meta').value.trim();
+ const price = parseFloat(document.getElementById('a-price').value);
+ const cond = document.getElementById('a-cond').value;
+ const cat = document.getElementById('a-cat').value;
+ const imgInput = document.getElementById('a-img').value.trim();
+ const img = imgInput || uploadedDraftImage;
 
-  if (!name || !meta || !price || !img) { showToast('Fill in all fields ✦'); return; }
+ if (!name || !meta || !price || !img) {
+ showToast('Fill name, meta, price, and image');
+ return;
+ }
 
-  Items.addDraft({ name, meta, price, cond, category: cat, img });
-  showToast('Added to drafts ✦');
+ Items.addDraft({ name, meta, price, cond, category: cat, img });
+ showToast('Added to drafts');
 
-  document.getElementById('a-name').value = '';
-  document.getElementById('a-meta').value = '';
-  document.getElementById('a-price').value = '';
-  document.getElementById('a-img').value = '';
-  renderDrafts();
+ document.getElementById('a-name').value = '';
+ document.getElementById('a-meta').value = '';
+ document.getElementById('a-price').value = '';
+ document.getElementById('a-img').value = '';
+ const fileInput = document.getElementById('a-img-file');
+ if (fileInput) fileInput.value = '';
+ uploadedDraftImage = '';
+
+ renderDrafts();
 }
 
 function renderDrafts() {
-  const drafts = Items.getDrafts();
-  document.getElementById('draftCount').textContent = drafts.length;
-  const el = document.getElementById('draftList');
-  if (drafts.length === 0) { el.innerHTML = '<p style="font-size:0.85em; color:rgba(255,255,255,0.3);">No drafts yet.</p>'; return; }
-  el.innerHTML = drafts.map(i => `
-    <div class="admin-item-row">
-      <img src="https://picsum.photos/seed/${i.img}/96/96.jpg" alt="">
-      <div class="admin-item-info">
-        <div class="admin-item-name">${i.name}</div>
-        <div class="admin-item-meta">${i.meta} · ${i.category}</div>
-      </div>
-      <div class="admin-item-price">$${i.price}</div>
-      <button class="admin-del-btn" onclick="removeDraft('${i.id}')">remove</button>
-    </div>
-  `).join('');
+ const drafts = Items.getDrafts();
+ document.getElementById('draftCount').textContent = drafts.length;
+ const el = document.getElementById('draftList');
+ if (drafts.length === 0) {
+ el.innerHTML = '<p style="font-size:0.85em; color:rgba(255,255,255,0.3);">No drafts yet.</p>';
+ return;
+ }
+ el.innerHTML = drafts.map(i => `
+ <div class="admin-item-row">
+ <img src="${getProductImageSrc(i.img, 96, 96)}" alt="">
+ <div class="admin-item-info">
+ <div class="admin-item-name">${i.name}</div>
+ <div class="admin-item-meta">${i.meta} - ${i.category}</div>
+ </div>
+ <div class="admin-item-price">$${i.price}</div>
+ <button class="admin-del-btn" onclick="removeDraft('${i.id}')">remove</button>
+ </div>
+ `).join('');
 }
 
-function removeDraft(id) { Items.removeDraft(id); renderDrafts(); showToast('Draft removed ✦'); }
+function removeDraft(id) { Items.removeDraft(id); renderDrafts(); showToast('Draft removed'); }
 
 function renderLive() {
-  const live = Items.getLive();
-  document.getElementById('liveCount').textContent = live.length;
-  const el = document.getElementById('liveList');
-  if (live.length === 0) { el.innerHTML = '<p style="font-size:0.85em; color:rgba(255,255,255,0.3);">No custom live items.</p>'; return; }
-  el.innerHTML = live.map(i => `
-    <div class="admin-item-row">
-      <img src="https://picsum.photos/seed/${i.img}/96/96.jpg" alt="">
-      <div class="admin-item-info">
-        <div class="admin-item-name">${i.name}</div>
-        <div class="admin-item-meta">${i.meta} · ${i.category}</div>
-      </div>
-      <div class="admin-item-price">$${i.price}</div>
-      <button class="admin-del-btn" onclick="removeLive('${i.id}')">remove</button>
-    </div>
-  `).join('');
+ const live = Items.getLive();
+ document.getElementById('liveCount').textContent = live.length;
+ const el = document.getElementById('liveList');
+ if (live.length === 0) {
+ el.innerHTML = '<p style="font-size:0.85em; color:rgba(255,255,255,0.3);">No custom live items.</p>';
+ return;
+ }
+ el.innerHTML = live.map(i => `
+ <div class="admin-item-row">
+ <img src="${getProductImageSrc(i.img, 96, 96)}" alt="">
+ <div class="admin-item-info">
+ <div class="admin-item-name">${i.name}</div>
+ <div class="admin-item-meta">${i.meta} - ${i.category}</div>
+ </div>
+ <div class="admin-item-price">$${i.price}</div>
+ <button class="admin-del-btn" onclick="removeLive('${i.id}')">remove</button>
+ </div>
+ `).join('');
 }
 
-function removeLive(id) { Items.removeLive(id); renderLive(); showToast('Item removed ✦'); }
+function removeLive(id) { Items.removeLive(id); renderLive(); showToast('Item removed'); }
 
 async function renderCustomers() {
-  const el = document.getElementById('custList');
-  const custs = await Customers.getAll();
-  document.getElementById('custCount').textContent = custs.length;
-  if (custs.length === 0) { el.innerHTML = '<p style="font-size:0.85em; color:rgba(255,255,255,0.3);">No customers yet.</p>'; return; }
-  el.innerHTML = custs.map(c => `
-    <div class="admin-item-row">
-      <div class="admin-item-info">
-        <div class="admin-item-name">${c.name}</div>
-        <div class="admin-item-meta">${c.email} · since ${c.firstOrder.toLocaleDateString()}</div>
-      </div>
-    </div>
-  `).join('');
+ const el = document.getElementById('custList');
+ el.innerHTML = '<p style="font-size:0.85em; color:rgba(255,255,255,0.3);">Loading...</p>';
+
+ const custs = await Customers.getAll();
+ document.getElementById('custCount').textContent = custs.length;
+ if (custs.length === 0) {
+ el.innerHTML = '<p style="font-size:0.85em; color:rgba(255,255,255,0.3);">No customers yet.</p>';
+ return;
+ }
+
+ el.innerHTML = custs.map(c => `
+ <div class="admin-item-row">
+ <div class="admin-item-info">
+ <div class="admin-item-name">${c.name || 'Unknown'}</div>
+ <div class="admin-item-meta">${c.phone || 'no phone'} - latest status: ${c.latestOrderStatus || 'unknown'}</div>
+ </div>
+ </div>
+ `).join('');
 }
 
-function renderOrders() {
-  const orders = Orders.getAll();
-  const pending = orders.filter(o => o.status === 'pending');
-  document.getElementById('orderCount').textContent = pending.length;
-  const el = document.getElementById('orderList');
+async function renderOrders() {
+ const el = document.getElementById('orderList');
+ el.innerHTML = '<p style="font-size:0.85em; color:rgba(255,255,255,0.3);">Loading orders...</p>';
 
-  if (pending.length === 0) { el.innerHTML = '<p style="font-size:0.85em; color:rgba(255,255,255,0.3);">No pending orders.</p>'; return; }
+ const pending = await Orders.getPendingRemote();
+ document.getElementById('orderCount').textContent = pending.length;
 
-  el.innerHTML = pending.map(o => {
-    const d = o.customer || {};
-    const itemNames = (o.items || []).map(i => i.name).join(', ');
-    const typeLabel = o.type === 'cod' ? 'COD' : o.type === 'online' ? 'Online' : '₹300 Fee';
-    return `
-      <div class="admin-item-row">
-        <div class="admin-item-info">
-          <div class="admin-item-name">${d.first || '?'} ${d.last || ''} — ${typeLabel}</div>
-          <div class="admin-item-meta">${d.phone || 'no phone'} · $${(o.total||0).toFixed(2)} · ${itemNames}</div>
-        </div>
-        <button class="admin-wa-btn" onclick="confirmOrderWhatsApp('${o.id}')">Confirm + WhatsApp</button>
-        <button class="admin-del-btn" onclick="markOrderDone('${o.id}')">done</button>
-      </div>
-    `;
-  }).join('');
+ if (pending.length === 0) {
+ el.innerHTML = '<p style="font-size:0.85em; color:rgba(255,255,255,0.3);">No pending orders.</p>';
+ return;
+ }
+
+ el.innerHTML = pending.map(o => {
+ return `
+ <div class="admin-item-row">
+ <div class="admin-item-info">
+ <div class="admin-item-name">${o.orderId || '-'} - ${o.name || 'Unknown'}</div>
+ <div class="admin-item-meta">${o.phone || 'no phone'} - ${o.city || '-'}${o.instagramHandle ? ' - ' + o.instagramHandle : ''}</div>
+ </div>
+ <button class="admin-wa-btn" onclick="confirmOrderWhatsApp('${o.orderId || ''}', this)">Confirm + WhatsApp</button>
+ <button class="admin-del-btn" onclick="markOrderDone('${o.orderId || ''}')">done</button>
+ </div>
+ `;
+ }).join('');
 }
 
-async function confirmOrderWhatsApp(orderId) {
-  const btn = event.target;
-  const originalText = btn.textContent;
-  btn.textContent = 'Sending...';
-  btn.disabled = true;
+async function confirmOrderWhatsApp(orderId, btn) {
+ if (!orderId || !btn) return;
+ const originalText = btn.textContent;
+ btn.textContent = 'Sending...';
+ btn.disabled = true;
 
-  try {
-    const res = await fetch(GOOGLE_SCRIPT_URL + '?redirect=false', {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({
-        type: 'whatsapp_confirm',
-        orderId: orderId
-      })
-    });
+ const data = await Orders.setConfirmedRemote(orderId, true);
 
-    const data = await res.json();
+ if (data.ok) {
+ showToast('Order confirmed and WhatsApp sent');
+ renderOrders();
+ renderCustomers();
+ } else {
+ showToast('Failed to confirm order');
+ }
 
-    if (data.success) {
-      showToast('Order confirmed & WhatsApp sent! ✦');
-      Orders.remove(orderId);
-      renderOrders();
-    } else {
-      showToast('WhatsApp failed — check API config');
-    }
-  } catch(e) {
-    showToast('Connection error ✦');
-  }
-
-  btn.textContent = originalText;
-  btn.disabled = false;
+ btn.textContent = originalText;
+ btn.disabled = false;
 }
 
-function markOrderDone(id) {
-  Orders.remove(id);
-  renderOrders();
-  showToast('Order marked as done ✦');
+async function markOrderDone(orderId) {
+ if (!orderId) return;
+ const data = await Orders.setConfirmedRemote(orderId, false);
+ if (data.ok) {
+ showToast('Order marked done');
+ renderOrders();
+ renderCustomers();
+ } else {
+ showToast('Failed to update order');
+ }
 }
 
 function releaseAll() {
-  const n = Items.releaseAll();
-  if (n === 0) { showToast('No drafts to release ✦'); return; }
-  showToast(n + ' items released! ✦');
-  renderDrafts();
-  renderLive();
-  document.getElementById('codeOutput').style.display = 'none';
+ const n = Items.releaseAll();
+ if (n === 0) { showToast('No drafts to release '); return; }
+ showToast(n + ' items released! ');
+ renderDrafts();
+ renderLive();
+ document.getElementById('codeOutput').style.display = 'none';
 }
 
 function exportCode() {
-  const code = Items.exportAsJS();
-  if (!code) { showToast('No live items to export ✦'); return; }
-  document.getElementById('codeOutput').style.display = 'block';
-  document.getElementById('codeText').textContent = code;
+ const code = Items.exportAsJS();
+ if (!code) { showToast('No live items to export '); return; }
+ document.getElementById('codeOutput').style.display = 'block';
+ document.getElementById('codeText').textContent = code;
 }
 
 function copyCode() {
-  navigator.clipboard.writeText(document.getElementById('codeText').textContent)
-    .then(() => showToast('Copied! ✦'))
-    .catch(() => showToast('Copy failed ✦'));
+ navigator.clipboard.writeText(document.getElementById('codeText').textContent)
+ .then(() => showToast('Copied! '))
+ .catch(() => showToast('Copy failed '));
 }
 
-// ══════════════════════════════════════════
-//  ON LOAD — check session
-// ══════════════════════════════════════════
+// 
+// ON LOAD check session
+// 
 document.addEventListener('DOMContentLoaded', () => {
-  if (sessionStorage.getItem('dee_admin') === '1') {
-    showScreen('admin');
-    initAdmin();
-  } else {
-    showScreen('send');
-  }
+ if (sessionStorage.getItem('dee_admin') === '1') {
+ showScreen('admin');
+ initAdmin();
+ } else {
+ showScreen('send');
+ }
 });
 </script>
 </body>
 </html>
+
+

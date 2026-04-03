@@ -1,146 +1,135 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Checkout â€” deethrifts</title>
-  <link rel="stylesheet" href="style.css">
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Checkout - deethrifts</title>
+ <link rel="stylesheet" href="style.css">
 </head>
 <body data-page="checkout">
 
 <div id="siteContainer">
-  <div class="spacer-sm"></div>
+ <div class="spacer-sm"></div>
 
-  <nav id="mainNav" class="glass-header flex-center">
-    <div style="display:flex; align-items:center; height:100%;">
-      <a href="index.html" class="nav-link" data-page="home"><span>ðŸ  Home</span></a>
-      <div class="vsep"></div>
-      <a href="shop.html" class="nav-link" data-page="shop"><span>Shop</span></a>
-      <div class="vsep"></div>
-      <a href="contact.html" class="nav-link" data-page="contact"><span>Contact</span></a>
-      <div class="vsep"></div>
-      <a href="cart.html" class="nav-link" data-page="cart" style="gap:6px;">
-        <span>ðŸ›’ Cart</span>
-        <span class="cart-badge" style="display:none;">0</span>
-      </a>
-    </div>
-  </nav>
+ <nav id="mainNav" class="glass-header flex-center">
+ <div style="display:flex; align-items:center; height:100%;">
+ <a href="index.html" class="nav-link" data-page="home"><span>Home</span></a>
+ <div class="vsep"></div>
+ <a href="shop.html" class="nav-link" data-page="shop"><span>Shop</span></a>
+ <div class="vsep"></div>
+ <a href="contact.html" class="nav-link" data-page="contact"><span>Contact</span></a>
+ <div class="vsep"></div>
+ <a href="cart.html" class="nav-link" data-page="cart" style="gap:6px;">
+ <span>Cart</span>
+ <span class="cart-badge" style="display:none;">0</span>
+ </a>
+ </div>
+ </nav>
 
-  <div class="spacer-sm"></div>
+ <div class="spacer-sm"></div>
 
-  <!-- ORDER CONFIRMED -->
-  <div id="orderConfirmed" style="display:none;">
-    <div class="glass-body r-all" style="padding:0; flex-direction:column;">
-      <div style="padding:48px; text-align:center;">
-        <div style="font-size:2.5em; margin-bottom:16px;">âœ¦</div>
-        <h2 style="color:#ffb0cc; font-size:1.4em;">Order received!</h2>
-        <p style="margin:12px auto 0; max-width:400px; text-align:center;">
-          Thanks so much â€” we'll reach out within 24 hours to confirm your order and arrange payment &amp; shipping.
-        </p>
-        <div style="margin-top:28px;">
-          <a href="index.html" class="aero-btn" style="text-decoration:none;">â† Back to home</a>
-        </div>
-      </div>
-    </div>
-  </div>
+ <div id="orderConfirmed" style="display:none;">
+ <div class="glass-body r-all" style="padding:0; flex-direction:column;">
+ <div style="padding:48px; text-align:center;">
+ <div style="font-size:2.5em; margin-bottom:16px;">OK</div>
+ <h2 style="color:#ffb0cc; font-size:1.4em;">Order received!</h2>
+ <p style="margin:12px auto 0; max-width:400px; text-align:center;">
+ Thanks so much - we will reach out within 24 hours to confirm your order and arrange payment and shipping.
+ </p>
+ <div style="margin-top:28px;">
+ <a href="index.html" class="aero-btn" style="text-decoration:none;">Back to home</a>
+ </div>
+ </div>
+ </div>
+ </div>
 
-  <!-- CHECKOUT FORM -->
-  <div id="checkoutForm">
-    <div style="display:grid; grid-template-columns:1fr 320px; gap:10px; align-items:start;">
+ <div id="checkoutForm">
+ <div style="display:grid; grid-template-columns:1fr 320px; gap:10px; align-items:start;">
+ <div>
+ <div class="glass-body r-top" style="padding:0; flex-direction:column;">
+ <div class="section-label">Your Details</div>
+ <div style="padding:20px;">
+ <div class="form-row">
+ <div class="form-group">
+ <label class="form-label">First Name</label>
+ <input class="glass-input" id="f-first" type="text" placeholder="Jane" required>
+ </div>
+ <div class="form-group">
+ <label class="form-label">Last Name</label>
+ <input class="glass-input" id="f-last" type="text" placeholder="Doe" required>
+ </div>
+ </div>
+ <div class="form-group">
+ <label class="form-label">Phone Number</label>
+ <input class="glass-input" id="f-phone" type="tel" placeholder="03001234567" required>
+ </div>
+ <div class="form-group">
+ <label class="form-label">Second Phone (optional)</label>
+ <input class="glass-input" id="f-phone2" type="tel" placeholder="03111234567">
+ </div>
+ <div class="form-group">
+ <label class="form-label">Instagram Handle</label>
+ <input class="glass-input" id="f-contact" type="text" placeholder="@yourhandle" required>
+ </div>
+ <div class="form-group">
+ <label class="form-label">Email</label>
+ <input class="glass-input" id="f-email" type="email" placeholder="you@example.com" required>
+ </div>
+ </div>
+ </div>
 
-      <div>
-        <div class="glass-body r-top" style="padding:0; flex-direction:column;">
-          <div class="section-label">âœ¦ Your Details</div>
-          <div style="padding:20px;">
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">First Name</label>
-                <input class="glass-input" id="f-first" type="text" placeholder="Jane" required>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Last Name</label>
-                <input class="glass-input" id="f-last" type="text" placeholder="Doe" required>
-              </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Phone Number</label>
-              <input class="glass-input" id="f-phone" type="tel" placeholder="03001234567" required>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Second Phone (optional)</label>
-              <input class="glass-input" id="f-phone2" type="tel" placeholder="03111234567">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Instagram / Other Contact (optional)</label>
-              <input class="glass-input" id="f-contact" type="text" placeholder="@yourhandle or email">
-            </div>
-          </div>
-        </div>
+ <div style="height:2px;"></div>
 
-        <div style="height:2px;"></div>
+ <div class="glass-body" style="padding:0; flex-direction:column;">
+ <div class="section-label">Shipping Address</div>
+ <div style="padding:20px;">
+ <div class="form-group">
+ <label class="form-label">Street Address</label>
+ <input class="glass-input" id="f-addr" type="text" placeholder="123 Main St, Apt 4">
+ </div>
+ <div class="form-group">
+ <label class="form-label">City</label>
+ <input class="glass-input" id="f-city" type="text" placeholder="Lahore">
+ </div>
+ <div class="form-group">
+ <label class="form-label">Notes (optional)</label>
+ <textarea class="glass-input" id="f-notes" rows="3" placeholder="Any special requests..." style="resize:vertical;"></textarea>
+ </div>
+ </div>
+ </div>
 
-        <div class="glass-body" style="padding:0; flex-direction:column;">
-          <div class="section-label">âœ¦ Shipping Address</div>
-          <div style="padding:20px;">
-            <div class="form-group">
-              <label class="form-label">Street Address</label>
-              <input class="glass-input" id="f-addr" type="text" placeholder="123 Main St, Apt 4">
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">City</label>
-                <input class="glass-input" id="f-city" type="text" placeholder="Lahore">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Postcode / ZIP</label>
-                <input class="glass-input" id="f-zip" type="text" placeholder="54000">
-              </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Country</label>
-              <input class="glass-input" id="f-country" type="text" placeholder="Pakistan">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Notes (optional)</label>
-              <textarea class="glass-input" id="f-notes" rows="3" placeholder="Any special requests..." style="resize:vertical;"></textarea>
-            </div>
-          </div>
-        </div>
+ <div style="height:2px;"></div>
 
-        <div style="height:2px;"></div>
+ <div id="customerStatus" style="display:none;"></div>
+ <div id="payChoices" style="display:none;"></div>
 
-        <div id="customerStatus" style="display:none;"></div>
-        <div id="payChoices" style="display:none;"></div>
+ <div id="formBottom" class="glass-body r-bot" style="padding:16px; justify-content:center; gap:14px;">
+ <button class="aero-btn" id="continueBtn" style="text-decoration:none;">Continue -&gt;</button>
+ </div>
+ </div>
 
-        <div id="formBottom" class="glass-body r-bot" style="padding:16px; justify-content:center; gap:14px;">
-          <button class="aero-btn" id="continueBtn" style="text-decoration:none;">Continue â†’</button>
-        </div>
-      </div>
+ <div>
+ <div class="glass-body r-all" style="padding:0; flex-direction:column;">
+ <div class="section-label">Order Summary</div>
+ <div id="summaryItems" style="padding:8px 0;"></div>
+ <div style="border-top:1px solid rgba(255,255,255,0.07); padding:14px 16px;">
+ <div class="total-row"><span class="total-label">Subtotal</span><span class="total-val" id="sumSubtotal">--</span></div>
+ <div class="total-row"><span class="total-label">Shipping</span><span class="total-val">$5.99</span></div>
+ <div class="total-row big"><span class="total-label">Total</span><span class="total-val" id="sumTotal">--</span></div>
+ </div>
+ </div>
+ </div>
+ </div>
+ </div>
 
-      <!-- ORDER SUMMARY -->
-      <div>
-        <div class="glass-body r-all" style="padding:0; flex-direction:column;">
-          <div class="section-label">âœ¦ Order Summary</div>
-          <div id="summaryItems" style="padding:8px 0;"></div>
-          <div style="border-top:1px solid rgba(255,255,255,0.07); padding:14px 16px;">
-            <div class="total-row"><span class="total-label">Subtotal</span><span class="total-val" id="sumSubtotal">â€”</span></div>
-            <div class="total-row"><span class="total-label">Shipping</span><span class="total-val">$5.99</span></div>
-            <div class="total-row big"><span class="total-label">Total</span><span class="total-val" id="sumTotal">â€”</span></div>
-          </div>
-        </div>
-      </div>
+ <div class="spacer-md"></div>
 
-    </div>
-  </div>
-
-  <div class="spacer-md"></div>
-
-  <div class="glass-header r-all" style="padding:0;">
-    <div class="footer-content">
-      <span>Â© 2025 <span class="logo-text">dee<span class="pink">thrifts</span></span> â€” all items are pre-owned and sold as-is</span>
-    </div>
-  </div>
-  <div class="spacer-md"></div>
+ <div class="glass-header r-all" style="padding:0;">
+ <div class="footer-content">
+ <span>(c) 2025 <span class="logo-text">dee<span class="pink">thrifts</span></span> - all items are pre-owned and sold as-is</span>
+ </div>
+ </div>
+ <div class="spacer-md"></div>
 </div>
 
 <div class="toast-msg" id="toastEl"></div>
@@ -148,232 +137,291 @@
 <script>
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby4GFix50mKnAHSpDGi-WQU6emttDYLDu3usIyqK6ncTtFJKbqfKND_wJLHeI_UF3J8/exec";
 Customers.setUrl(GOOGLE_SCRIPT_URL);
+Orders.setUrl(GOOGLE_SCRIPT_URL);
 
 let currentOrder = null;
-let lastIsReturning = null;
+let lastCustomerProfile = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-  const cart = Cart.get();
-  if (cart.length === 0) { window.location.href = 'cart.html'; return; }
+ const cart = Cart.get();
+ if (cart.length === 0) {
+ window.location.href = 'cart.html';
+ return;
+ }
 
-  const si = document.getElementById('summaryItems');
-  cart.forEach(item => {
-    const row = document.createElement('div');
-    row.style.cssText = 'display:flex; align-items:center; gap:10px; padding:8px 14px; border-bottom:1px solid rgba(255,255,255,0.05);';
-    row.innerHTML = `
-      <img src="https://picsum.photos/seed/${item.img}/80/80.jpg" style="width:40px;height:40px;object-fit:cover;border-radius:5px;">
-      <div style="flex:1;">
-        <div style="font-size:0.82em;color:rgba(255,255,255,0.8);">${item.name}</div>
-      </div>
-      <div style="font-size:0.9em;color:#ffb0cc;font-weight:500;">$${item.price.toFixed(2)}</div>
-    `;
-    si.appendChild(row);
-  });
+ const si = document.getElementById('summaryItems');
+ cart.forEach(item => {
+ const row = document.createElement('div');
+ row.style.cssText = 'display:flex; align-items:center; gap:10px; padding:8px 14px; border-bottom:1px solid rgba(255,255,255,0.05);';
+ row.innerHTML = `
+ <img src="${getProductImageSrc(item.img, 80, 80)}" style="width:40px;height:40px;object-fit:cover;border-radius:5px;">
+ <div style="flex:1;">
+ <div style="font-size:0.82em;color:rgba(255,255,255,0.8);">${item.name}</div>
+ </div>
+ <div style="font-size:0.9em;color:#ffb0cc;font-weight:500;">$${item.price.toFixed(2)}</div>
+ `;
+ si.appendChild(row);
+ });
 
-  const subtotal = Cart.total();
-  document.getElementById('sumSubtotal').textContent = '$' + subtotal.toFixed(2);
-  document.getElementById('sumTotal').textContent = '$' + (subtotal + 5.99).toFixed(2);
+ const subtotal = Cart.total();
+ document.getElementById('sumSubtotal').textContent = '$' + subtotal.toFixed(2);
+ document.getElementById('sumTotal').textContent = '$' + (subtotal + 5.99).toFixed(2);
 
-  document.getElementById('continueBtn').addEventListener('click', handleContinue);
+ document.getElementById('continueBtn').addEventListener('click', handleContinue);
 });
 
 function getFormData() {
-  return {
-    first:   document.getElementById('f-first').value.trim(),
-    last:    document.getElementById('f-last').value.trim(),
-    phone:   document.getElementById('f-phone').value.trim(),
-    phone2:  document.getElementById('f-phone2').value.trim(),
-    contact: document.getElementById('f-contact').value.trim(),
-    addr:    document.getElementById('f-addr').value.trim(),
-    city:    document.getElementById('f-city').value.trim(),
-    zip:     document.getElementById('f-zip').value.trim(),
-    country: document.getElementById('f-country').value.trim(),
-    notes:   document.getElementById('f-notes').value.trim(),
-  };
+ return {
+ first: document.getElementById('f-first').value.trim(),
+ last: document.getElementById('f-last').value.trim(),
+ phone: document.getElementById('f-phone').value.trim(),
+ phone2: document.getElementById('f-phone2').value.trim(),
+ contact: document.getElementById('f-contact').value.trim(),
+ email: document.getElementById('f-email').value.trim(),
+ addr: document.getElementById('f-addr').value.trim(),
+ city: document.getElementById('f-city').value.trim(),
+ notes: document.getElementById('f-notes').value.trim()
+ };
+}
+
+function isValidEmail(email) {
+ return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 async function handleContinue() {
-  const d = getFormData();
-  if (!d.first || !d.last || !d.phone) {
-    showToast('Please fill in your name and phone number âœ¦');
-    return;
-  }
+ const d = getFormData();
+ if (!d.first || !d.last || !d.phone || !d.contact || !d.email) {
+ showToast('Please fill in name, phone, Instagram handle, and email.');
+ return;
+ }
 
-  if (d.phone.replace(/\D/g, "").length < 7) {
-    showToast('Enter a valid phone number âœ¦');
-    return;
-  }
+ if (d.phone.replace(/\D/g, '').length < 7) {
+ showToast('Enter a valid phone number.');
+ return;
+ }
 
-  const continueBtn = document.getElementById('continueBtn');
-  continueBtn.textContent = 'Checking...';
-  continueBtn.disabled = true;
+ if (!isValidEmail(d.email)) {
+ showToast('Enter a valid email address.');
+ return;
+ }
 
-  const isReturning = await Customers.isReturning(d.phone);
-  lastIsReturning = isReturning;
+ const continueBtn = document.getElementById('continueBtn');
+ continueBtn.textContent = 'Checking...';
+ continueBtn.disabled = true;
 
-  continueBtn.textContent = 'Continue â†’';
-  continueBtn.disabled = false;
+ const customerProfile = await Customers.getProfile(d.phone);
+ const isReturning = customerProfile.returning === true;
+ const codBlocked = customerProfile.codBlocked === true;
+ lastCustomerProfile = customerProfile;
 
-  const statusEl = document.getElementById('customerStatus');
-  const choicesEl = document.getElementById('payChoices');
-  statusEl.style.display = 'block';
-  choicesEl.style.display = 'block';
-  continueBtn.style.display = 'none';
+ continueBtn.textContent = 'Continue ->';
+ continueBtn.disabled = false;
 
-  if (isReturning) {
-    statusEl.innerHTML = `
-      <div class="customer-status returning">
-        <div class="status-icon">âœ“</div>
-        <div class="status-text">Welcome back, <strong>${d.first}</strong>! You're a <span class="status-highlight">returning customer</span>.</div>
-      </div>
-    `;
-    choicesEl.innerHTML = `
-      <div class="glass-body r-bot" style="flex-direction:column; padding:0;">
-        <div style="padding:16px 20px;">
-          <div class="pay-choices">
-            <button class="aero-btn pink-btn" onclick="handleCOD()" style="text-decoration:none; min-width:160px;">Cash on Delivery</button>
-            <button class="aero-btn" onclick="handleOnline()" style="text-decoration:none; min-width:160px;">Pay Online</button>
-          </div>
-          <p style="font-size:0.78em; color:rgba(255,255,255,0.3); text-align:center; margin-top:8px; max-width:100%;">
-            COD: no upfront payment needed. Online: you'll be asked to send payment proof.
-          </p>
-        </div>
-      </div>
-    `;
-  } else {
-    statusEl.innerHTML = `
-      <div class="customer-status first-time">
-        <div class="status-icon">âœ¦</div>
-        <div class="status-text">
-          First-time order â€” a <span class="status-highlight">â‚¹300 delivery fee</span> must be paid online before we can confirm your order.
-        </div>
-      </div>
-    `;
-    choicesEl.innerHTML = `
-      <div class="glass-body r-bot" style="flex-direction:column; padding:0;">
-        <div style="padding:16px 20px;">
-          <div class="pay-choices">
-            <button class="aero-btn pink-btn" onclick="handleFirstTimeDelivery()" style="text-decoration:none; min-width:200px;">Pay â‚¹300 Delivery Fee â†’</button>
-          </div>
-          <p style="font-size:0.78em; color:rgba(255,255,255,0.3); text-align:center; margin-top:8px; max-width:100%;">
-            You'll be redirected to pay â‚¹300. After we confirm, your order will be processed.
-          </p>
-        </div>
-      </div>
-    `;
-  }
+ const statusEl = document.getElementById('customerStatus');
+ const choicesEl = document.getElementById('payChoices');
+ statusEl.style.display = 'block';
+ choicesEl.style.display = 'block';
+ continueBtn.style.display = 'none';
+
+ if (isReturning && !codBlocked) {
+ statusEl.innerHTML = `
+ <div class="customer-status returning">
+ <div class="status-icon">OK</div>
+ <div class="status-text">Welcome back, <strong>${d.first}</strong>! You are a <span class="status-highlight">returning customer</span>.</div>
+ </div>
+ `;
+ choicesEl.innerHTML = `
+ <div class="glass-body r-bot" style="flex-direction:column; padding:0;">
+ <div style="padding:16px 20px;">
+ <div class="pay-choices">
+ <button class="aero-btn pink-btn" onclick="handleCOD()" style="text-decoration:none; min-width:160px;">Cash on Delivery</button>
+ <button class="aero-btn" onclick="handleOnline()" style="text-decoration:none; min-width:160px;">Pay Online</button>
+ </div>
+ <p style="font-size:0.78em; color:rgba(255,255,255,0.3); text-align:center; margin-top:8px; max-width:100%;">
+ COD: no upfront payment needed. Online: you will be asked to send payment proof.
+ </p>
+ </div>
+ </div>
+ `;
+ } else if (isReturning && codBlocked) {
+ const latest = customerProfile.latestOrderStatus || 'returned';
+ statusEl.innerHTML = `
+ <div class="customer-status first-time">
+ <div class="status-icon">!</div>
+ <div class="status-text">
+ Your latest order status is <span class="status-highlight">${latest}</span>, so COD is disabled for this order.
+ </div>
+ </div>
+ `;
+ choicesEl.innerHTML = `
+ <div class="glass-body r-bot" style="flex-direction:column; padding:0;">
+ <div style="padding:16px 20px;">
+ <div class="pay-choices">
+ <button class="aero-btn pink-btn" onclick="handleOnline()" style="text-decoration:none; min-width:180px;">Pay Online</button>
+ </div>
+ <p style="font-size:0.78em; color:rgba(255,255,255,0.3); text-align:center; margin-top:8px; max-width:100%;">
+ Online payment is required before we can confirm this order.
+ </p>
+ </div>
+ </div>
+ `;
+ } else {
+ statusEl.innerHTML = `
+ <div class="customer-status first-time">
+ <div class="status-icon">!</div>
+ <div class="status-text">
+ First-time order - a <span class="status-highlight">Rs 300 delivery fee</span> must be paid online before we can confirm your order.
+ </div>
+ </div>
+ `;
+ choicesEl.innerHTML = `
+ <div class="glass-body r-bot" style="flex-direction:column; padding:0;">
+ <div style="padding:16px 20px;">
+ <div class="pay-choices">
+ <button class="aero-btn pink-btn" onclick="handleFirstTimeDelivery()" style="text-decoration:none; min-width:220px;">Pay Rs 300 Delivery Fee -&gt;</button>
+ </div>
+ <p style="font-size:0.78em; color:rgba(255,255,255,0.3); text-align:center; margin-top:8px; max-width:100%;">
+ You will be redirected to pay Rs 300. After we confirm, your order will be processed.
+ </p>
+ </div>
+ </div>
+ `;
+ }
 }
 
 function buildOrderText(d, cart, subtotal) {
-  const lines = cart.map(i => `â€¢ ${i.name} (${i.meta}) â€” $${i.price.toFixed(2)}`).join('\n');
-  return `ORDER\n${'â”€'.repeat(30)}\n${lines}\n\nSubtotal: $${subtotal.toFixed(2)}\nShipping: $5.99\nTotal:    $${(subtotal+5.99).toFixed(2)}\n\nCUSTOMER\n${'â”€'.repeat(30)}\nName:    ${d.first} ${d.last}\nPhone:   ${d.phone}\nContact: ${d.contact || 'â€”'}\nAddress: ${d.addr || 'â€”'}\n${d.city || 'â€”'} ${d.zip || 'â€”'} ${d.country || 'â€”'}\nNotes:   ${d.notes || 'â€”'}`;
+ const lines = cart.map(i => `- ${i.name} (${i.meta}) - $${i.price.toFixed(2)}`).join('\n');
+ const divider = '-'.repeat(30);
+ return `ORDER\n${divider}\n${lines}\n\nSubtotal: $${subtotal.toFixed(2)}\nShipping: $5.99\nTotal: $${(subtotal + 5.99).toFixed(2)}\n\nCUSTOMER\n${divider}\nName: ${d.first} ${d.last}\nPhone: ${d.phone}\nSecond Phone: ${d.phone2 || '-'}\nInstagram: ${d.contact}\nEmail: ${d.email}\nAddress: ${d.addr || '-'}\nCity: ${d.city || '-'}\nNotes: ${d.notes || '-'}`;
 }
 
 async function sendOrder(orderText, paymentType) {
-  try {
-    await fetch(GOOGLE_SCRIPT_URL + '?redirect=false', {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({
-        type: 'order',
-        subject: 'New order - ' + paymentType,
-        details: orderText + '\n\nPayment: ' + paymentType,
-        order: currentOrder
-      })
-    });
-  } catch(e) {}
+ try {
+ await fetch(GOOGLE_SCRIPT_URL + '?redirect=false', {
+ method: 'POST',
+ headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+ body: JSON.stringify({
+ type: 'order',
+ subject: 'New order - ' + paymentType,
+ details: orderText + '\n\nPayment: ' + paymentType,
+ orderId: currentOrder ? currentOrder.id : '',
+ order: currentOrder
+ })
+ });
+ } catch (e) {
+ console.warn('Order sync failed:', e);
+ }
 }
 
 async function handleCOD() {
-  const d = getFormData();
-  const cart = Cart.get();
-  const subtotal = Cart.total();
-  const orderText = buildOrderText(d, cart, subtotal);
-  const total = subtotal + 5.99;
+ if (lastCustomerProfile && lastCustomerProfile.codBlocked) {
+ showToast('COD is disabled for this account.');
+ return;
+ }
 
-  currentOrder = Orders.create({
-    type:'cod',
-    customer:d,
-    items:cart,
-    subtotal,
-    total,
-    phone: d.phone,
-    secondPhone: d.phone2 || '',
-    name: (d.first + ' ' + d.last).trim(),
-    city: d.city || '',
-    address: [d.addr, d.city, d.zip, d.country].filter(Boolean).join(', '),
-    firstOrder: lastIsReturning === null ? false : !lastIsReturning,
-    paymentMode: 'cod',
-    amount: '$' + total.toFixed(2),
-    screenshot: '',
-    confirmed: false
-  });
-  await sendOrder(orderText, 'CASH ON DELIVERY');
+ const d = getFormData();
+ const cart = Cart.get();
+ const subtotal = Cart.total();
+ const orderText = buildOrderText(d, cart, subtotal);
+ const total = subtotal + 5.99;
+ const orderName = cart.map(i => i.name).join(', ');
 
-  Cart.clear();
-  document.getElementById('checkoutForm').style.display = 'none';
-  document.getElementById('orderConfirmed').style.display = 'block';
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+ currentOrder = Orders.create({
+ type: 'cod',
+ customer: d,
+ items: cart,
+ subtotal,
+ total,
+ phone: d.phone,
+ secondPhone: d.phone2 || '',
+ name: (d.first + ' ' + d.last).trim(),
+ instagramHandle: d.contact,
+ email: d.email,
+ city: d.city || '',
+ address: [d.addr, d.city].filter(Boolean).join(', '),
+ firstOrder: !(lastCustomerProfile && lastCustomerProfile.returning),
+ latestOrderStatus: (lastCustomerProfile && lastCustomerProfile.latestOrderStatus) || '',
+ orderName,
+ paymentMode: 'cod',
+ amount: '$' + total.toFixed(2),
+ screenshot: '',
+ confirmed: false
+ });
+ await sendOrder(orderText, 'CASH ON DELIVERY');
+
+ Cart.clear();
+ document.getElementById('checkoutForm').style.display = 'none';
+ document.getElementById('orderConfirmed').style.display = 'block';
+ window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 async function handleOnline() {
-  const d = getFormData();
-  const cart = Cart.get();
-  const subtotal = Cart.total();
-  const orderText = buildOrderText(d, cart, subtotal);
-  const total = subtotal + 5.99;
+ const d = getFormData();
+ const cart = Cart.get();
+ const subtotal = Cart.total();
+ const orderText = buildOrderText(d, cart, subtotal);
+ const total = subtotal + 5.99;
+ const orderName = cart.map(i => i.name).join(', ');
 
-  currentOrder = Orders.create({
-    type:'online',
-    customer:d,
-    items:cart,
-    subtotal,
-    total,
-    phone: d.phone,
-    secondPhone: d.phone2 || '',
-    name: (d.first + ' ' + d.last).trim(),
-    city: d.city || '',
-    address: [d.addr, d.city, d.zip, d.country].filter(Boolean).join(', '),
-    firstOrder: lastIsReturning === null ? false : !lastIsReturning,
-    paymentMode: 'prepaid',
-    amount: '$' + total.toFixed(2),
-    screenshot: '',
-    confirmed: false
-  });
-  await sendOrder(orderText, 'ONLINE (proof pending)');
+ currentOrder = Orders.create({
+ type: 'online',
+ customer: d,
+ items: cart,
+ subtotal,
+ total,
+ phone: d.phone,
+ secondPhone: d.phone2 || '',
+ name: (d.first + ' ' + d.last).trim(),
+ instagramHandle: d.contact,
+ email: d.email,
+ city: d.city || '',
+ address: [d.addr, d.city].filter(Boolean).join(', '),
+ firstOrder: !(lastCustomerProfile && lastCustomerProfile.returning),
+ latestOrderStatus: (lastCustomerProfile && lastCustomerProfile.latestOrderStatus) || '',
+ orderName,
+ paymentMode: 'prepaid',
+ amount: '$' + total.toFixed(2),
+ screenshot: '',
+ confirmed: false
+ });
+ await sendOrder(orderText, 'ONLINE (proof pending)');
 
-  window.location.href = 'payment.html?context=order&oid=' + currentOrder.id;
+ window.location.href = 'payment.html?context=order&oid=' + currentOrder.id;
 }
 
 async function handleFirstTimeDelivery() {
-  const d = getFormData();
-  const cart = Cart.get();
-  const subtotal = Cart.total();
-  const orderText = buildOrderText(d, cart, subtotal);
-  const total = subtotal + 5.99;
+ const d = getFormData();
+ const cart = Cart.get();
+ const subtotal = Cart.total();
+ const orderText = buildOrderText(d, cart, subtotal);
+ const total = subtotal + 5.99;
+ const orderName = cart.map(i => i.name).join(', ');
 
-  currentOrder = Orders.create({
-    type:'first_time_delivery',
-    customer:d,
-    items:cart,
-    subtotal,
-    total,
-    phone: d.phone,
-    secondPhone: d.phone2 || '',
-    name: (d.first + ' ' + d.last).trim(),
-    city: d.city || '',
-    address: [d.addr, d.city, d.zip, d.country].filter(Boolean).join(', '),
-    firstOrder: true,
-    paymentMode: 'prepaid',
-    amount: 'Rs 300',
-    screenshot: '',
-    confirmed: false
-  });
-  await sendOrder(orderText, 'FIRST-TIME DELIVERY FEE â‚¹300 (proof pending)');
+ currentOrder = Orders.create({
+ type: 'first_time_delivery',
+ customer: d,
+ items: cart,
+ subtotal,
+ total,
+ phone: d.phone,
+ secondPhone: d.phone2 || '',
+ name: (d.first + ' ' + d.last).trim(),
+ instagramHandle: d.contact,
+ email: d.email,
+ city: d.city || '',
+ address: [d.addr, d.city].filter(Boolean).join(', '),
+ firstOrder: true,
+ latestOrderStatus: 'first_order',
+ orderName,
+ paymentMode: 'prepaid',
+ amount: 'Rs 300',
+ screenshot: '',
+ confirmed: false
+ });
+ await sendOrder(orderText, 'FIRST-TIME DELIVERY FEE Rs 300 (proof pending)');
 
-  window.location.href = 'payment.html?context=delivery&oid=' + currentOrder.id;
+ window.location.href = 'payment.html?context=delivery&oid=' + currentOrder.id;
 }
 </script>
 </body>
 </html>
-
