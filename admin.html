@@ -151,27 +151,42 @@ let adminBooted = false;
 let draftStore = [];
 
 const Drafts = {
+  _key: 'dee_admin_drafts',
+  _mem: null,
+
   get() {
-    return Array.isArray(draftStore) ? draftStore : [];
+    // Prefer in-memory (preserves image blobs); hydrate from localStorage on first call
+    if (this._mem !== null) return this._mem;
+    try {
+      const saved = JSON.parse(localStorage.getItem(this._key) || '[]');
+      this._mem = Array.isArray(saved) ? saved : [];
+    } catch (_) {
+      this._mem = [];
+    }
+    return this._mem;
   },
 
   save(list) {
-    draftStore = Array.isArray(list) ? list : [];
+    this._mem = Array.isArray(list) ? list : [];
+    // Persist metadata to localStorage — strip image blobs (too large for localStorage)
+    try {
+      localStorage.setItem(this._key, JSON.stringify(this._mem.map(d => ({ ...d, images: [] }))));
+    } catch (_) {}
   },
 
   add(draft) {
-    const list = this.get();
+    const list = this.get().slice(); // always work on a copy
     list.push(draft);
     this.save(list);
   },
 
   remove(id) {
-    const list = this.get().filter(d => d.localId !== id);
-    this.save(list);
+    this.save(this.get().filter(d => d.localId !== id));
   },
 
   clear() {
-    this.save([]);
+    this._mem = [];
+    try { localStorage.removeItem(this._key); } catch (_) {}
   }
 };
 
@@ -508,8 +523,7 @@ function renderDrafts() {
 }
 
 function removeDraft(id) {
-  const list = Drafts.get().filter(d => d.localId !== id);
-  Drafts.save(list);
+  Drafts.remove(id); // uses the fixed Drafts.remove()
   renderDrafts();
 }
 
@@ -521,146 +535,90 @@ function clearDrafts() {
 
 async function postProduct(productDraft) {
   const firstImage = (productDraft.images && productDraft.images[0]) ? productDraft.images[0] : null;
-  const firstUrl = (productDraft.imageUrls && productDraft.imageUrls[0]) ? productDraft.imageUrls[0] : '';
-  const tagsCsv = (productDraft.tags || ['new']).join(',');
+  const firstUrl   = (productDraft.imageUrls && productDraft.imageUrls[0]) ? productDraft.imageUrls[0] : '';
+  const tagsCsv      = (productDraft.tags || ['new']).join(',');
   const imageUrlsCsv = (productDraft.imageUrls || []).join(',');
 
-  let created = false;
-
-  // 1) CORS-safe create via GET JSONP route.
+  // Step 1: Add via JSONP GET (works cross-origin without CORS issues)
   try {
     const createRes = await window.DEE_API.getJson({
       action: 'add_product',
-      productId: productDraft.productId,
-      id: productDraft.productId,
-      name: productDraft.name,
-      garmentType: productDraft.garmentType,
-      category: productDraft.category,
-      tags: tagsCsv,
-      cond: productDraft.cond,
-      price: String(productDraft.price),
+      productId:    productDraft.productId,
+      id:           productDraft.productId,
+      name:         productDraft.name,
+      garmentType:  productDraft.garmentType,
+      category:     productDraft.category,
+      tags:         tagsCsv,
+      cond:         productDraft.cond,
+      price:        String(productDraft.price),
       measurements: productDraft.measurements,
-      meta: productDraft.measurements,
-      imageUrls: imageUrlsCsv
+      meta:         productDraft.measurements,
+      imageUrls:    imageUrlsCsv
     });
-    if (createRes && createRes.ok === true) created = true;
+
+    if (createRes && createRes.ok === true) {
+      // Product written to sheet — fire-and-forget POST only if there are image blobs to upload
+      if (productDraft.images && productDraft.images.length > 0) {
+        window.DEE_API.postJson({
+          type: 'add_product',
+          product: {
+            productId:       productDraft.productId,
+            images:          productDraft.images,
+            imageDataUrl:    firstImage ? firstImage.imageDataUrl   : '',
+            imageFileName:   firstImage ? firstImage.imageFileName  : ''
+          }
+        }).catch(e => console.warn('Image upload POST failed:', e));
+      }
+      return true; // ← KEY FIX: trust the ok:true response, don't re-verify
+    }
   } catch (e) {
     console.warn('GET add_product failed:', e);
   }
 
+  // Step 2: Fall back to POST (no-cors, fire-and-forget)
   const payload = {
     type: 'add_product',
     product: {
-      productId: productDraft.productId,
-      id: productDraft.productId,
-      name: productDraft.name,
-      garmentType: productDraft.garmentType,
-      category: productDraft.category,
-      tags: productDraft.tags || ['new'],
-      cond: productDraft.cond,
-      price: productDraft.price,
-      measurements: productDraft.measurements,
-      meta: productDraft.measurements,
-      quantity: 1,
-      imageUrls: productDraft.imageUrls || [],
-      images: productDraft.images || [],
-      imageUrl: firstUrl,
-      imageDataUrl: firstImage ? firstImage.imageDataUrl : '',
-      imageFileName: firstImage ? firstImage.imageFileName : ''
-    }
-  };
-
-  // 2) POST fallback/augment for deployments that require doPost and for file uploads.
-  if (!created || (productDraft.images && productDraft.images.length > 0)) {
-    try {
-      await window.DEE_API.postJson(payload);
-    } catch (e) {
-      console.warn('Primary add_product POST failed:', e);
-    }
-  }
-
-  // Verify write by reading products list; avoid false success from opaque responses.
-  for (let i = 0; i < 12; i++) {
-    await Products.refresh();
-    const exists = getAllProducts().some(p =>
-      p.id === productDraft.productId ||
-      (p.name === productDraft.name && Number(p.price || 0) === Number(productDraft.price || 0) && p.category === productDraft.category)
-    );
-    if (exists) return true;
-    await new Promise(r => setTimeout(r, 700));
-  }
-
-  // Fallback to a single-image-compatible payload for older scripts.
-  const fallbackPayload = {
-    type: 'add_product',
-    product: {
-      productId: productDraft.productId,
-      id: productDraft.productId,
-      name: productDraft.name,
-      category: productDraft.category,
-      meta: productDraft.measurements,
-      cond: productDraft.cond,
-      price: productDraft.price,
-      imageUrl: firstUrl,
-      imageDataUrl: firstImage ? firstImage.imageDataUrl : '',
+      productId:     productDraft.productId,
+      id:            productDraft.productId,
+      name:          productDraft.name,
+      garmentType:   productDraft.garmentType,
+      category:      productDraft.category,
+      tags:          productDraft.tags || ['new'],
+      cond:          productDraft.cond,
+      price:         productDraft.price,
+      measurements:  productDraft.measurements,
+      meta:          productDraft.measurements,
+      quantity:      1,
+      imageUrls:     productDraft.imageUrls || [],
+      images:        productDraft.images    || [],
+      imageUrl:      firstUrl,
+      imageDataUrl:  firstImage ? firstImage.imageDataUrl  : '',
       imageFileName: firstImage ? firstImage.imageFileName : ''
     }
   };
 
   try {
-    await window.DEE_API.postJson(fallbackPayload);
-  } catch (e2) {
-    console.warn('Fallback add_product call failed:', e2);
+    await window.DEE_API.postJson(payload);
+  } catch (e) {
+    console.warn('POST add_product failed:', e);
+    return false;
   }
 
-  for (let j = 0; j < 10; j++) {
-    await Products.refresh();
-    const exists2 = getAllProducts().some(p =>
+  // Step 3: Verify POST worked by polling (only reached if GET failed)
+  for (let i = 0; i < 8; i++) {
+    await new Promise(r => setTimeout(r, 1000));
+    try { await Products.refresh(); } catch (_) {}
+    const exists = getAllProducts().some(p =>
       p.id === productDraft.productId ||
-      (p.name === productDraft.name && Number(p.price || 0) === Number(productDraft.price || 0) && p.category === productDraft.category)
+      (p.name === productDraft.name &&
+       Number(p.price || 0) === Number(productDraft.price || 0) &&
+       p.category === productDraft.category)
     );
-    if (exists2) return true;
-    await new Promise(r => setTimeout(r, 700));
+    if (exists) return true;
   }
 
   return false;
-}
-
-async function postCurrentProductNow() {
-  const product = collectProductFromForm();
-  if (!product) return;
-  const ok = await postProduct(product);
-  if (!ok) {
-    showToast('Failed to post product.');
-    return;
-  }
-  resetProductForm();
-  await renderProducts();
-  showToast('Product posted.');
-}
-
-async function postAllDrafts() {
-  const drafts = Drafts.get();
-  if (drafts.length === 0) {
-    showToast('No drafts to post.');
-    return;
-  }
-
-  const keep = [];
-  let okCount = 0;
-
-  for (let i = 0; i < drafts.length; i++) {
-    const ok = await postProduct(drafts[i]);
-    if (ok) okCount += 1;
-    else keep.push(drafts[i]);
-  }
-
-  Drafts.save(keep);
-  renderDrafts();
-  await renderProducts();
-
-  if (okCount === drafts.length) showToast('All drafts posted.');
-  else showToast(okCount + ' posted, ' + keep.length + ' failed.');
 }
 
 async function renderProducts() {
@@ -732,6 +690,36 @@ async function renderOrders() {
       </div>
     `;
   }).join('');
+}
+
+async function postAllDrafts() {
+  const drafts = Drafts.get().slice(); // ← snapshot copy, not a reference
+  if (drafts.length === 0) {
+    showToast('No drafts to post.');
+    return;
+  }
+
+  const postedIds = new Set();
+  let okCount = 0;
+
+  for (let i = 0; i < drafts.length; i++) {
+    showToast(`Posting ${i + 1} of ${drafts.length}…`);
+    const ok = await postProduct(drafts[i]);
+    if (ok) {
+      okCount++;
+      postedIds.add(drafts[i].localId);
+    }
+  }
+
+  // Only remove successfully posted items from the CURRENT store.
+  // Any drafts the user removed during the async loop stay removed.
+  Drafts.save(Drafts.get().filter(d => !postedIds.has(d.localId)));
+  renderDrafts();
+  await renderProducts();
+
+  if (postedIds.size === 0) showToast('All posts failed — see deployment note below.');
+  else if (okCount === drafts.length) showToast('All drafts posted!');
+  else showToast(`${okCount} posted, ${drafts.length - okCount} failed.`);
 }
 
 async function confirmOrder(orderId) {
