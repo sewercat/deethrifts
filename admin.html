@@ -522,6 +522,31 @@ function clearDrafts() {
 async function postProduct(productDraft) {
   const firstImage = (productDraft.images && productDraft.images[0]) ? productDraft.images[0] : null;
   const firstUrl = (productDraft.imageUrls && productDraft.imageUrls[0]) ? productDraft.imageUrls[0] : '';
+  const tagsCsv = (productDraft.tags || ['new']).join(',');
+  const imageUrlsCsv = (productDraft.imageUrls || []).join(',');
+
+  let created = false;
+
+  // 1) CORS-safe create via GET JSONP route.
+  try {
+    const createRes = await window.DEE_API.getJson({
+      action: 'add_product',
+      productId: productDraft.productId,
+      id: productDraft.productId,
+      name: productDraft.name,
+      garmentType: productDraft.garmentType,
+      category: productDraft.category,
+      tags: tagsCsv,
+      cond: productDraft.cond,
+      price: String(productDraft.price),
+      measurements: productDraft.measurements,
+      meta: productDraft.measurements,
+      imageUrls: imageUrlsCsv
+    });
+    if (createRes && createRes.ok === true) created = true;
+  } catch (e) {
+    console.warn('GET add_product failed:', e);
+  }
 
   const payload = {
     type: 'add_product',
@@ -545,18 +570,24 @@ async function postProduct(productDraft) {
     }
   };
 
-  try {
-    await window.DEE_API.postJson(payload);
-  } catch (e) {
-    console.warn('Primary add_product call failed:', e);
+  // 2) POST fallback/augment for deployments that require doPost and for file uploads.
+  if (!created || (productDraft.images && productDraft.images.length > 0)) {
+    try {
+      await window.DEE_API.postJson(payload);
+    } catch (e) {
+      console.warn('Primary add_product POST failed:', e);
+    }
   }
 
-  // Verify write by reading products list; avoid false success from opaque CORS responses.
-  for (let i = 0; i < 7; i++) {
+  // Verify write by reading products list; avoid false success from opaque responses.
+  for (let i = 0; i < 12; i++) {
     await Products.refresh();
-    const exists = getAllProducts().some(p => p.id === productDraft.productId);
+    const exists = getAllProducts().some(p =>
+      p.id === productDraft.productId ||
+      (p.name === productDraft.name && Number(p.price || 0) === Number(productDraft.price || 0) && p.category === productDraft.category)
+    );
     if (exists) return true;
-    await new Promise(r => setTimeout(r, 600));
+    await new Promise(r => setTimeout(r, 700));
   }
 
   // Fallback to a single-image-compatible payload for older scripts.
@@ -582,11 +613,14 @@ async function postProduct(productDraft) {
     console.warn('Fallback add_product call failed:', e2);
   }
 
-  for (let j = 0; j < 7; j++) {
+  for (let j = 0; j < 10; j++) {
     await Products.refresh();
-    const exists2 = getAllProducts().some(p => p.id === productDraft.productId);
+    const exists2 = getAllProducts().some(p =>
+      p.id === productDraft.productId ||
+      (p.name === productDraft.name && Number(p.price || 0) === Number(productDraft.price || 0) && p.category === productDraft.category)
+    );
     if (exists2) return true;
-    await new Promise(r => setTimeout(r, 600));
+    await new Promise(r => setTimeout(r, 700));
   }
 
   return false;
