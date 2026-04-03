@@ -182,13 +182,28 @@ const OTP = {
 
   async send() {
     const code = this.generate();
-    const res = await window.DEE_API.getJson({
+    let res = null;
+    try {
+      res = await window.DEE_API.getJson({
+        type: 'otp',
+        code: code,
+        expires: OTP_EXPIRY_MINUTES
+      });
+    } catch (_) {
+      res = null;
+    }
+
+    if (res && res.ok === true) return code;
+
+    // Fallback for deployments where OTP write is only implemented in doPost.
+    const postRes = await window.DEE_API.postJson({
       type: 'otp',
       code: code,
       expires: OTP_EXPIRY_MINUTES
     });
-    if (!res || res.ok !== true) {
-      throw new Error((res && res.error) ? res.error : 'OTP not saved (Apps Script deployment may be old)');
+
+    if (!postRes || (postRes.ok !== true && postRes.queued !== true)) {
+      throw new Error((postRes && postRes.error) ? postRes.error : 'OTP not saved (Apps Script deployment may be old)');
     }
     return code;
   },
