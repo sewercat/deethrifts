@@ -166,7 +166,7 @@ const Drafts = {
   },
 
   remove(id) {
-    const list = this.get().filter(d => d.id !== id);
+    const list = this.get().filter(d => d.localId !== id);
     this.save(list);
   },
 
@@ -375,16 +375,13 @@ async function filesToData(files) {
 async function handleImageUpload(e) {
   const files = Array.from((e.target.files || []));
   if (files.length === 0) {
-    uploadedImages = [];
-    document.getElementById('imgSelectionInfo').textContent = 'Upload up to 5 images. Files are saved in Google Drive.';
     return;
   }
 
-  if (files.length > 5) {
-    showToast('Max 5 images allowed.');
+  const nextTotal = uploadedImages.length + files.length;
+  if (nextTotal > 5) {
+    showToast('Max 5 images allowed in total.');
     e.target.value = '';
-    uploadedImages = [];
-    document.getElementById('imgSelectionInfo').textContent = 'Upload up to 5 images. Files are saved in Google Drive.';
     return;
   }
 
@@ -392,12 +389,12 @@ async function handleImageUpload(e) {
   if (tooBig) {
     showToast('Each image must be 5MB or less.');
     e.target.value = '';
-    uploadedImages = [];
-    document.getElementById('imgSelectionInfo').textContent = 'Upload up to 5 images. Files are saved in Google Drive.';
     return;
   }
 
-  uploadedImages = await filesToData(files);
+  const parsed = await filesToData(files);
+  uploadedImages = uploadedImages.concat(parsed).slice(0, 5);
+  e.target.value = '';
   document.getElementById('imgSelectionInfo').textContent = uploadedImages.length + ' image(s) selected.';
 }
 
@@ -455,7 +452,8 @@ function collectProductFromForm() {
   }
 
   return {
-    id: 'draft-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+    localId: 'draft-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+    productId: 'PRD-' + Date.now() + '-' + Math.random().toString(36).slice(2, 4).toUpperCase(),
     name,
     garmentType,
     category: garmentType,
@@ -504,13 +502,14 @@ function renderDrafts() {
         <div class="admin-item-meta">new + ${d.garmentType} | ${d.measurements} | ${d.images.length + d.imageUrls.length} image(s)</div>
       </div>
       <div class="admin-item-price">${formatPkr(d.price)}</div>
-      <button class="admin-del-btn" onclick="removeDraft('${d.id}')">remove</button>
+      <button class="admin-del-btn" onclick="removeDraft('${d.localId}')">remove</button>
     </div>
   `).join('');
 }
 
 function removeDraft(id) {
-  Drafts.remove(id);
+  const list = Drafts.get().filter(d => d.localId !== id);
+  Drafts.save(list);
   renderDrafts();
 }
 
@@ -521,9 +520,14 @@ function clearDrafts() {
 }
 
 async function postProduct(productDraft) {
+  const firstImage = (productDraft.images && productDraft.images[0]) ? productDraft.images[0] : null;
+  const firstUrl = (productDraft.imageUrls && productDraft.imageUrls[0]) ? productDraft.imageUrls[0] : '';
+
   const payload = {
     type: 'add_product',
     product: {
+      productId: productDraft.productId,
+      id: productDraft.productId,
       name: productDraft.name,
       garmentType: productDraft.garmentType,
       category: productDraft.category,
@@ -534,12 +538,58 @@ async function postProduct(productDraft) {
       meta: productDraft.measurements,
       quantity: 1,
       imageUrls: productDraft.imageUrls || [],
-      images: productDraft.images || []
+      images: productDraft.images || [],
+      imageUrl: firstUrl,
+      imageDataUrl: firstImage ? firstImage.imageDataUrl : '',
+      imageFileName: firstImage ? firstImage.imageFileName : ''
     }
   };
 
-  const res = await window.DEE_API.postJson(payload);
-  return !!(res && (res.ok === true || res.queued === true));
+  try {
+    await window.DEE_API.postJson(payload);
+  } catch (e) {
+    console.warn('Primary add_product call failed:', e);
+  }
+
+  // Verify write by reading products list; avoid false success from opaque CORS responses.
+  for (let i = 0; i < 7; i++) {
+    await Products.refresh();
+    const exists = getAllProducts().some(p => p.id === productDraft.productId);
+    if (exists) return true;
+    await new Promise(r => setTimeout(r, 600));
+  }
+
+  // Fallback to a single-image-compatible payload for older scripts.
+  const fallbackPayload = {
+    type: 'add_product',
+    product: {
+      productId: productDraft.productId,
+      id: productDraft.productId,
+      name: productDraft.name,
+      category: productDraft.category,
+      meta: productDraft.measurements,
+      cond: productDraft.cond,
+      price: productDraft.price,
+      imageUrl: firstUrl,
+      imageDataUrl: firstImage ? firstImage.imageDataUrl : '',
+      imageFileName: firstImage ? firstImage.imageFileName : ''
+    }
+  };
+
+  try {
+    await window.DEE_API.postJson(fallbackPayload);
+  } catch (e2) {
+    console.warn('Fallback add_product call failed:', e2);
+  }
+
+  for (let j = 0; j < 7; j++) {
+    await Products.refresh();
+    const exists2 = getAllProducts().some(p => p.id === productDraft.productId);
+    if (exists2) return true;
+    await new Promise(r => setTimeout(r, 600));
+  }
+
+  return false;
 }
 
 async function postCurrentProductNow() {
