@@ -187,8 +187,8 @@ const OTP = {
       code: code,
       expires: OTP_EXPIRY_MINUTES
     });
-    if (!res || res.ok === false) {
-      throw new Error((res && res.error) ? res.error : 'OTP request failed');
+    if (!res || res.ok !== true) {
+      throw new Error((res && res.error) ? res.error : 'OTP not saved (Apps Script deployment may be old)');
     }
     return code;
   },
