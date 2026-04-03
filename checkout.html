@@ -114,7 +114,7 @@
  <div id="summaryItems" style="padding:8px 0;"></div>
  <div style="border-top:1px solid rgba(255,255,255,0.07); padding:14px 16px;">
  <div class="total-row"><span class="total-label">Subtotal</span><span class="total-val" id="sumSubtotal">--</span></div>
- <div class="total-row"><span class="total-label">Shipping</span><span class="total-val">$5.99</span></div>
+ <div class="total-row"><span class="total-label">Shipping</span><span class="total-val">Rs 0</span></div>
  <div class="total-row big"><span class="total-label">Total</span><span class="total-val" id="sumTotal">--</span></div>
  </div>
  </div>
@@ -135,9 +135,9 @@
 <div class="toast-msg" id="toastEl"></div>
 <script src="cart.js"></script>
 <script>
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby4GFix50mKnAHSpDGi-WQU6emttDYLDu3usIyqK6ncTtFJKbqfKND_wJLHeI_UF3J8/exec";
-Customers.setUrl(GOOGLE_SCRIPT_URL);
-Orders.setUrl(GOOGLE_SCRIPT_URL);
+window.DEE_GOOGLE_SCRIPT_URL = window.DEE_GOOGLE_SCRIPT_URL || "https://script.google.com/macros/s/AKfycby4GFix50mKnAHSpDGi-WQU6emttDYLDu3usIyqK6ncTtFJKbqfKND_wJLHeI_UF3J8/exec";
+Customers.setUrl(window.DEE_GOOGLE_SCRIPT_URL);
+Orders.setUrl(window.DEE_GOOGLE_SCRIPT_URL);
 
 let currentOrder = null;
 let lastCustomerProfile = null;
@@ -158,21 +158,23 @@ async function initCheckout() {
 
  const si = document.getElementById('summaryItems');
  cart.forEach(item => {
+ const rowImg = Array.isArray(item.images) && item.images.length ? item.images[0] : item.img;
  const row = document.createElement('div');
  row.style.cssText = 'display:flex; align-items:center; gap:10px; padding:8px 14px; border-bottom:1px solid rgba(255,255,255,0.05);';
  row.innerHTML = `
- <img src="${getProductImageSrc(item.img, 80, 80)}" style="width:40px;height:40px;object-fit:cover;border-radius:5px;">
+ <img src="${getProductImageSrc(rowImg, 80, 80)}" style="width:40px;height:40px;object-fit:cover;border-radius:5px;">
  <div style="flex:1;">
  <div style="font-size:0.82em;color:rgba(255,255,255,0.8);">${item.name}</div>
  </div>
- <div style="font-size:0.9em;color:#ffb0cc;font-weight:500;">$${item.price.toFixed(2)}</div>
+ <div style="font-size:0.9em;color:#ffb0cc;font-weight:500;">${formatPkr(item.price)}</div>
  `;
  si.appendChild(row);
  });
 
  const subtotal = Cart.total();
- document.getElementById('sumSubtotal').textContent = '$' + subtotal.toFixed(2);
- document.getElementById('sumTotal').textContent = '$' + (subtotal + 5.99).toFixed(2);
+ const shipping = 0;
+ document.getElementById('sumSubtotal').textContent = formatPkr(subtotal);
+ document.getElementById('sumTotal').textContent = formatPkr(subtotal + shipping);
 
  document.getElementById('continueBtn').addEventListener('click', handleContinue);
 }
@@ -307,23 +309,19 @@ async function handleContinue() {
 }
 
 function buildOrderText(d, cart, subtotal) {
- const lines = cart.map(i => `- ${i.name} (${i.meta}) - $${i.price.toFixed(2)}`).join('\n');
+ const lines = cart.map(i => `- ${i.name} (${i.meta}) - ${formatPkr(i.price)}`).join('\n');
  const divider = '-'.repeat(30);
- return `ORDER\n${divider}\n${lines}\n\nSubtotal: $${subtotal.toFixed(2)}\nShipping: $5.99\nTotal: $${(subtotal + 5.99).toFixed(2)}\n\nCUSTOMER\n${divider}\nName: ${d.first} ${d.last}\nPhone: ${d.phone}\nSecond Phone: ${d.phone2 || '-'}\nInstagram: ${d.contact}\nEmail: ${d.email}\nAddress: ${d.addr || '-'}\nCity: ${d.city || '-'}\nNotes: ${d.notes || '-'}`;
+ return `ORDER\n${divider}\n${lines}\n\nSubtotal: ${formatPkr(subtotal)}\nShipping: ${formatPkr(0)}\nTotal: ${formatPkr(subtotal)}\n\nCUSTOMER\n${divider}\nName: ${d.first} ${d.last}\nPhone: ${d.phone}\nSecond Phone: ${d.phone2 || '-'}\nInstagram: ${d.contact}\nEmail: ${d.email}\nAddress: ${d.addr || '-'}\nCity: ${d.city || '-'}\nNotes: ${d.notes || '-'}`;
 }
 
 async function sendOrder(orderText, paymentType) {
  try {
- await fetch(GOOGLE_SCRIPT_URL + '?redirect=false', {
- method: 'POST',
- headers: { 'Content-Type': 'text/plain;charset=utf-8' },
- body: JSON.stringify({
+ await window.DEE_API.postJson({
  type: 'order',
  subject: 'New order - ' + paymentType,
  details: orderText + '\n\nPayment: ' + paymentType,
  orderId: currentOrder ? currentOrder.id : '',
  order: currentOrder
- })
  });
  } catch (e) {
  console.warn('Order sync failed:', e);
@@ -345,7 +343,8 @@ async function handleCOD() {
  }
  const subtotal = Cart.total();
  const orderText = buildOrderText(d, cart, subtotal);
- const total = subtotal + 5.99;
+ const shipping = 0;
+ const total = subtotal + shipping;
  const orderName = cart.map(i => i.name).join(', ');
  const productIds = cart.map(i => i.id).filter(Boolean);
  const productNames = cart.map(i => i.name).filter(Boolean);
@@ -369,7 +368,7 @@ async function handleCOD() {
  productIds,
  productNames,
  paymentMode: 'cod',
- amount: '$' + total.toFixed(2),
+ amount: formatPkr(total),
  screenshot: '',
  confirmed: false
  });
@@ -391,7 +390,8 @@ async function handleOnline() {
  }
  const subtotal = Cart.total();
  const orderText = buildOrderText(d, cart, subtotal);
- const total = subtotal + 5.99;
+ const shipping = 0;
+ const total = subtotal + shipping;
  const orderName = cart.map(i => i.name).join(', ');
  const productIds = cart.map(i => i.id).filter(Boolean);
  const productNames = cart.map(i => i.name).filter(Boolean);
@@ -415,7 +415,7 @@ async function handleOnline() {
  productIds,
  productNames,
  paymentMode: 'prepaid',
- amount: '$' + total.toFixed(2),
+ amount: formatPkr(total),
  screenshot: '',
  confirmed: false
  });
@@ -434,7 +434,7 @@ async function handleFirstTimeDelivery() {
  }
  const subtotal = Cart.total();
  const orderText = buildOrderText(d, cart, subtotal);
- const total = subtotal + 5.99;
+ const total = subtotal;
  const orderName = cart.map(i => i.name).join(', ');
  const productIds = cart.map(i => i.id).filter(Boolean);
  const productNames = cart.map(i => i.name).filter(Boolean);

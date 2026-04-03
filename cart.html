@@ -100,10 +100,11 @@ async function renderCart() {
 
  const tbody = document.getElementById('cartBody');
  cart.forEach(item => {
+ const rowImg = Array.isArray(item.images) && item.images.length ? item.images[0] : item.img;
  const tr = document.createElement('tr');
  tr.innerHTML = `
  <td style="padding-left:16px; width:60px;">
- <img class="cart-item-img" src="${getProductImageSrc(item.img, 120, 120)}" alt="">
+ <img class="cart-item-img" src="${getProductImageSrc(rowImg, 120, 120)}" alt="">
  </td>
  <td>
  <div class="cart-item-name">${item.name}</div>
@@ -116,18 +117,18 @@ async function renderCart() {
  <button class="qty-btn" disabled>+</button>
  </div>
  </td>
- <td class="cart-item-price">$${item.price.toFixed(2)}</td>
+ <td class="cart-item-price">${formatPkr(item.price)}</td>
  <td><button class="remove-btn" onclick="removeItem('${item.id}')">- remove</button></td>
  `;
  tbody.appendChild(tr);
  });
 
  const subtotal = Cart.total();
- const shipping = subtotal > 0 ? 5.99 : 0;
+ const shipping = 0;
  document.getElementById('totalsArea').innerHTML = `
- <div class="total-row"><span class="total-label">Subtotal</span><span class="total-val">$${subtotal.toFixed(2)}</span></div>
- <div class="total-row"><span class="total-label">Shipping</span><span class="total-val">$${shipping.toFixed(2)}</span></div>
- <div class="total-row big"><span class="total-label">Total</span><span class="total-val">$${(subtotal+shipping).toFixed(2)}</span></div>
+ <div class="total-row"><span class="total-label">Subtotal</span><span class="total-val">${formatPkr(subtotal)}</span></div>
+ <div class="total-row"><span class="total-label">Shipping</span><span class="total-val">${formatPkr(shipping)}</span></div>
+ <div class="total-row big"><span class="total-label">Total</span><span class="total-val">${formatPkr(subtotal + shipping)}</span></div>
  `;
  Cart.updateBadge();
 }

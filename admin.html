@@ -50,31 +50,19 @@
     <div class="glass-body r-bot" style="flex-direction:column; padding:0;">
       <div class="admin-section" style="border-bottom:1px solid rgba(255,255,255,0.06);">
         <div class="admin-section-title">Add New Product</div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Name</label>
-            <input class="glass-input" id="a-name" type="text" placeholder="Vintage Wool Blazer">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Category</label>
-            <select class="glass-input" id="a-cat">
-              <option value="new">New Arrivals</option>
-              <option value="dresses">Dresses</option>
-              <option value="tops">Tops</option>
-              <option value="bottoms">Bottoms</option>
-              <option value="misc">Misc</option>
-            </select>
-          </div>
-        </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label">Meta</label>
-            <input class="glass-input" id="a-meta" type="text" placeholder="Size M - 1980s">
+            <label class="form-label">Name</label>
+            <input class="glass-input" id="a-name" type="text" placeholder="Vintage Tee">
           </div>
           <div class="form-group">
-            <label class="form-label">Price ($)</label>
-            <input class="glass-input" id="a-price" type="number" placeholder="25" min="1">
+            <label class="form-label">Garment Type</label>
+            <select class="glass-input" id="a-garment">
+              <option value="shirts">Shirts</option>
+              <option value="bottoms">Bottoms</option>
+              <option value="accessories">Accessories</option>
+            </select>
           </div>
         </div>
 
@@ -87,20 +75,44 @@
             </select>
           </div>
           <div class="form-group">
-            <label class="form-label">Image URL (optional)</label>
-            <input class="glass-input" id="a-img" type="text" placeholder="https://...">
+            <label class="form-label">Price (PKR)</label>
+            <input class="glass-input" id="a-price" type="number" placeholder="2500" min="1" step="1">
           </div>
         </div>
 
+        <div id="measurementBox"></div>
+
         <div class="form-group">
-          <label class="form-label">Image File (uploads to Google Drive)</label>
-          <input class="glass-input" id="a-img-file" type="file" accept="image/*">
+          <label class="form-label">Image URL(s) (optional)</label>
+          <input class="glass-input" id="a-img-urls" type="text" placeholder="https://... , https://...">
           <p style="font-size:0.74em; color:rgba(255,255,255,0.4); margin-top:6px;">
-            If both file and URL are provided, file upload is used.
+            Enter comma-separated URLs if you already host images.
           </p>
         </div>
 
-        <button class="aero-btn" id="addItemBtn" style="margin-top:10px;">Add Product to Sheet</button>
+        <div class="form-group">
+          <label class="form-label">Image Files (max 5)</label>
+          <input class="glass-input" id="a-img-files" type="file" accept="image/*" multiple>
+          <p id="imgSelectionInfo" style="font-size:0.74em; color:rgba(255,255,255,0.4); margin-top:6px;">
+            Upload up to 5 images. Files are saved in Google Drive.
+          </p>
+        </div>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;">
+          <button class="aero-btn pink-btn" id="addDraftBtn">Add to Drafts</button>
+          <button class="aero-btn" id="postNowBtn">Post This Product Now</button>
+        </div>
+      </div>
+
+      <div class="admin-section" style="border-bottom:1px solid rgba(255,255,255,0.06);">
+        <div class="admin-section-title">
+          Drafts <span class="draft-count" id="draftCount">0</span>
+        </div>
+        <div id="draftList"><p style="font-size:0.85em; color:rgba(255,255,255,0.3);">No drafts yet.</p></div>
+        <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+          <button class="aero-btn pink-btn" id="postDraftsBtn">Post All Drafts</button>
+          <button class="aero-btn" id="clearDraftsBtn">Clear Drafts</button>
+        </div>
       </div>
 
       <div class="admin-section" style="border-bottom:1px solid rgba(255,255,255,0.06);">
@@ -110,21 +122,14 @@
         <div id="liveList"><p style="font-size:0.85em; color:rgba(255,255,255,0.3);">Loading...</p></div>
       </div>
 
-      <div class="admin-section" style="border-bottom:1px solid rgba(255,255,255,0.06);">
+      <div class="admin-section">
         <div class="admin-section-title">
           Orders <span class="draft-count" id="orderCount">0</span>
         </div>
         <div id="orderList"><p style="font-size:0.85em; color:rgba(255,255,255,0.3);">Loading...</p></div>
         <p style="font-size:0.72em; color:rgba(255,255,255,0.25); margin-top:8px;">
-          Confirmed orders mark products as sold out. Delivered orders remove products and delete their Drive files.
+          Confirmed orders mark products as sold out. Delivered orders remove products and delete Drive files.
         </p>
-      </div>
-
-      <div class="admin-section">
-        <div class="admin-section-title">
-          Customers <span class="draft-count" id="custCount">0</span>
-        </div>
-        <div id="custList"><p style="font-size:0.85em; color:rgba(255,255,255,0.3);">Loading...</p></div>
       </div>
     </div>
   </div>
@@ -141,8 +146,34 @@ const API_URL = window.DEE_GOOGLE_SCRIPT_URL;
 const OTP_EXPIRY_MINUTES = 5;
 const COOLDOWN_SECONDS = 60;
 
-let uploadedImageDataUrl = '';
-let uploadedImageName = '';
+let uploadedImages = [];
+let adminBooted = false;
+let draftStore = [];
+
+const Drafts = {
+  get() {
+    return Array.isArray(draftStore) ? draftStore : [];
+  },
+
+  save(list) {
+    draftStore = Array.isArray(list) ? list : [];
+  },
+
+  add(draft) {
+    const list = this.get();
+    list.push(draft);
+    this.save(list);
+  },
+
+  remove(id) {
+    const list = this.get().filter(d => d.id !== id);
+    this.save(list);
+  },
+
+  clear() {
+    this.save([]);
+  }
+};
 
 const OTP = {
   generate() {
@@ -151,37 +182,22 @@ const OTP = {
 
   async send() {
     const code = this.generate();
-    try {
-      const res = await fetch(API_URL + '?redirect=false', {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ type: 'otp', code, expires: OTP_EXPIRY_MINUTES })
-      });
-      if (res.ok) return code;
-    } catch (_) {
-      // fallback to GET for older Apps Script deployments
+    const res = await window.DEE_API.getJson({
+      type: 'otp',
+      code: code,
+      expires: OTP_EXPIRY_MINUTES
+    });
+    if (!res || res.ok === false) {
+      throw new Error((res && res.error) ? res.error : 'OTP request failed');
     }
-
-    const fallback = await fetch(
-      API_URL
-      + '?redirect=false&type=otp&code=' + encodeURIComponent(code)
-      + '&expires=' + encodeURIComponent(String(OTP_EXPIRY_MINUTES))
-    );
-    if (!fallback.ok) {
-      throw new Error('OTP request failed with HTTP ' + fallback.status);
-    }
-
     return code;
   },
 
   async verify(code) {
-    const res = await fetch(
-      API_URL + '?redirect=false&action=verify_otp&code=' + encodeURIComponent(code.trim())
-    );
-    if (!res.ok) {
-      throw new Error('Verify request failed with HTTP ' + res.status);
-    }
-    return await res.json();
+    return await window.DEE_API.getJson({
+      action: 'verify_otp',
+      code: code.trim()
+    });
   }
 };
 
@@ -191,14 +207,32 @@ function showScreen(name) {
   document.getElementById('adminPanel').style.display = name === 'admin' ? 'block' : 'none';
 }
 
-document.getElementById('sendOtpBtn').addEventListener('click', sendOTP);
-document.getElementById('verifyOtpBtn').addEventListener('click', verifyOTP);
-document.getElementById('resendOtpBtn').addEventListener('click', () => {
-  showScreen('send');
-});
-document.getElementById('otpInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter') verifyOTP();
-});
+function showOtpError(msg) {
+  const el = document.getElementById('otpError');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function startCooldown(remaining) {
+  remaining = remaining || COOLDOWN_SECONDS;
+  const btn = document.getElementById('sendOtpBtn');
+  const cooldownEl = document.getElementById('otpCooldown');
+  const secEl = document.getElementById('cooldownSec');
+
+  btn.disabled = true;
+  btn.textContent = 'Generate Access Code';
+  cooldownEl.style.display = 'block';
+
+  const timer = setInterval(() => {
+    remaining -= 1;
+    secEl.textContent = remaining;
+    if (remaining <= 0) {
+      clearInterval(timer);
+      btn.disabled = false;
+      cooldownEl.style.display = 'none';
+    }
+  }, 1000);
+}
 
 async function sendOTP() {
   const btn = document.getElementById('sendOtpBtn');
@@ -206,12 +240,12 @@ async function sendOTP() {
   btn.disabled = true;
 
   try {
-    const code = await OTP.send();
+    await OTP.send();
     showScreen('enter');
     document.getElementById('otpInput').value = '';
     document.getElementById('otpError').style.display = 'none';
     document.getElementById('otpInput').focus();
-    showToast('OTP saved to sheet. Code: ' + code);
+    showToast('Access code generated. Check OTP sheet.');
     startCooldown();
   } catch (e) {
     console.warn(e);
@@ -251,124 +285,283 @@ async function verifyOTP() {
   document.getElementById('resendOtpBtn').style.display = 'inline-flex';
 }
 
-function showOtpError(msg) {
-  const el = document.getElementById('otpError');
-  el.textContent = msg;
-  el.style.display = 'block';
-}
+function renderMeasurementInputs() {
+  const type = document.getElementById('a-garment').value;
+  const box = document.getElementById('measurementBox');
 
-function startCooldown(remaining) {
-  remaining = remaining || COOLDOWN_SECONDS;
-  const btn = document.getElementById('sendOtpBtn');
-  const cooldownEl = document.getElementById('otpCooldown');
-  const secEl = document.getElementById('cooldownSec');
-
-  btn.disabled = true;
-  btn.textContent = 'Generate Access Code';
-  cooldownEl.style.display = 'block';
-
-  const timer = setInterval(() => {
-    remaining -= 1;
-    secEl.textContent = remaining;
-    if (remaining <= 0) {
-      clearInterval(timer);
-      btn.disabled = false;
-      cooldownEl.style.display = 'none';
-    }
-  }, 1000);
-}
-
-function initAdmin() {
-  Products.setUrl(API_URL);
-  Customers.setUrl(API_URL);
-  Orders.setUrl(API_URL);
-
-  const fileInput = document.getElementById('a-img-file');
-  fileInput.addEventListener('change', handleImageUpload);
-  document.getElementById('addItemBtn').addEventListener('click', addProduct);
-
-  renderProducts();
-  renderOrders();
-  renderCustomers();
-}
-
-function handleImageUpload(e) {
-  const file = e.target.files && e.target.files[0];
-  if (!file) {
-    uploadedImageDataUrl = '';
-    uploadedImageName = '';
+  if (type === 'shirts') {
+    box.innerHTML = `
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Shoulder (in)</label>
+          <input class="glass-input" id="m-shoulder" type="number" min="1" step="0.1" placeholder="18">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Chest (in)</label>
+          <input class="glass-input" id="m-chest" type="number" min="1" step="0.1" placeholder="40">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Waist (in)</label>
+          <input class="glass-input" id="m-waist" type="number" min="1" step="0.1" placeholder="38">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Length (in)</label>
+          <input class="glass-input" id="m-length" type="number" min="1" step="0.1" placeholder="27">
+        </div>
+      </div>
+    `;
     return;
   }
 
-  if (file.size > 5 * 1024 * 1024) {
-    showToast('Image too large (max 5MB).');
-    e.target.value = '';
-    uploadedImageDataUrl = '';
-    uploadedImageName = '';
+  if (type === 'bottoms') {
+    box.innerHTML = `
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Waist (in)</label>
+          <input class="glass-input" id="m-waist" type="number" min="1" step="0.1" placeholder="32">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Length (in)</label>
+          <input class="glass-input" id="m-length" type="number" min="1" step="0.1" placeholder="40">
+        </div>
+      </div>
+    `;
     return;
   }
 
-  const reader = new FileReader();
-  reader.onload = ev => {
-    uploadedImageDataUrl = String(ev.target.result || '');
-    uploadedImageName = file.name || ('product-' + Date.now() + '.jpg');
-    showToast('Image file selected.');
-  };
-  reader.readAsDataURL(file);
+  box.innerHTML = `
+    <div class="form-group">
+      <label class="form-label">Measurements</label>
+      <input class="glass-input" type="text" value="None (accessory)" disabled>
+    </div>
+  `;
 }
 
-async function addProduct() {
-  const name = document.getElementById('a-name').value.trim();
-  const category = document.getElementById('a-cat').value;
-  const meta = document.getElementById('a-meta').value.trim();
-  const price = Number(document.getElementById('a-price').value || 0);
-  const cond = document.getElementById('a-cond').value;
-  const imageUrl = document.getElementById('a-img').value.trim();
-
-  if (!name || !category || !price) {
-    showToast('Fill name, category, and price.');
-    return;
-  }
-
-  try {
-    const res = await fetch(API_URL + '?redirect=false', {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({
-        type: 'add_product',
-        product: {
-          name,
-          category,
-          meta,
-          price,
-          cond,
-          imageUrl,
-          imageDataUrl: uploadedImageDataUrl,
-          imageFileName: uploadedImageName
-        }
-      })
+async function filesToData(files) {
+  const out = [];
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = ev => resolve(String(ev.target.result || ''));
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
     });
-
-    const data = await res.json();
-    if (!data.ok) {
-      showToast(data.error || 'Failed to add product.');
-      return;
-    }
-
-    showToast('Product added to sheet.');
-    document.getElementById('a-name').value = '';
-    document.getElementById('a-meta').value = '';
-    document.getElementById('a-price').value = '';
-    document.getElementById('a-img').value = '';
-    document.getElementById('a-img-file').value = '';
-    uploadedImageDataUrl = '';
-    uploadedImageName = '';
-
-    await renderProducts();
-  } catch (e) {
-    console.warn(e);
-    showToast('Failed to add product.');
+    out.push({
+      imageDataUrl: dataUrl,
+      imageFileName: file.name || ('product-' + Date.now() + '-' + i + '.jpg')
+    });
   }
+  return out;
+}
+
+async function handleImageUpload(e) {
+  const files = Array.from((e.target.files || []));
+  if (files.length === 0) {
+    uploadedImages = [];
+    document.getElementById('imgSelectionInfo').textContent = 'Upload up to 5 images. Files are saved in Google Drive.';
+    return;
+  }
+
+  if (files.length > 5) {
+    showToast('Max 5 images allowed.');
+    e.target.value = '';
+    uploadedImages = [];
+    document.getElementById('imgSelectionInfo').textContent = 'Upload up to 5 images. Files are saved in Google Drive.';
+    return;
+  }
+
+  const tooBig = files.find(f => f.size > 5 * 1024 * 1024);
+  if (tooBig) {
+    showToast('Each image must be 5MB or less.');
+    e.target.value = '';
+    uploadedImages = [];
+    document.getElementById('imgSelectionInfo').textContent = 'Upload up to 5 images. Files are saved in Google Drive.';
+    return;
+  }
+
+  uploadedImages = await filesToData(files);
+  document.getElementById('imgSelectionInfo').textContent = uploadedImages.length + ' image(s) selected.';
+}
+
+function splitImageUrls(raw) {
+  return String(raw || '')
+    .split(',')
+    .map(v => String(v || '').trim())
+    .filter(Boolean)
+    .slice(0, 5);
+}
+
+function collectMeasurements() {
+  const type = document.getElementById('a-garment').value;
+
+  if (type === 'shirts') {
+    const shoulder = String(document.getElementById('m-shoulder').value || '').trim();
+    const chest = String(document.getElementById('m-chest').value || '').trim();
+    const waist = String(document.getElementById('m-waist').value || '').trim();
+    const length = String(document.getElementById('m-length').value || '').trim();
+    if (!shoulder || !chest || !waist || !length) return '';
+    return `Shoulder: ${shoulder} in, Chest: ${chest} in, Waist: ${waist} in, Length: ${length} in`;
+  }
+
+  if (type === 'bottoms') {
+    const waist = String(document.getElementById('m-waist').value || '').trim();
+    const length = String(document.getElementById('m-length').value || '').trim();
+    if (!waist || !length) return '';
+    return `Waist: ${waist} in, Length: ${length} in`;
+  }
+
+  return 'None';
+}
+
+function collectProductFromForm() {
+  const name = document.getElementById('a-name').value.trim();
+  const garmentType = document.getElementById('a-garment').value;
+  const cond = document.getElementById('a-cond').value;
+  const price = Number(document.getElementById('a-price').value || 0);
+  const measurements = collectMeasurements();
+  const imageUrls = splitImageUrls(document.getElementById('a-img-urls').value);
+
+  if (!name || !garmentType || !price) {
+    showToast('Fill name, garment type, and PKR price.');
+    return null;
+  }
+
+  if ((garmentType === 'shirts' || garmentType === 'bottoms') && !measurements) {
+    showToast('Please fill required measurements.');
+    return null;
+  }
+
+  if ((imageUrls.length + uploadedImages.length) > 5) {
+    showToast('Total images cannot exceed 5.');
+    return null;
+  }
+
+  return {
+    id: 'draft-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+    name,
+    garmentType,
+    category: garmentType,
+    tags: ['new'],
+    cond,
+    price: Math.round(price),
+    measurements,
+    imageUrls,
+    images: uploadedImages.slice(0, 5)
+  };
+}
+
+function resetProductForm() {
+  document.getElementById('a-name').value = '';
+  document.getElementById('a-price').value = '';
+  document.getElementById('a-img-urls').value = '';
+  document.getElementById('a-img-files').value = '';
+  uploadedImages = [];
+  document.getElementById('imgSelectionInfo').textContent = 'Upload up to 5 images. Files are saved in Google Drive.';
+  renderMeasurementInputs();
+}
+
+function addToDrafts() {
+  const draft = collectProductFromForm();
+  if (!draft) return;
+  Drafts.add(draft);
+  renderDrafts();
+  resetProductForm();
+  showToast('Added to drafts.');
+}
+
+function renderDrafts() {
+  const drafts = Drafts.get();
+  document.getElementById('draftCount').textContent = drafts.length;
+  const el = document.getElementById('draftList');
+
+  if (drafts.length === 0) {
+    el.innerHTML = '<p style="font-size:0.85em; color:rgba(255,255,255,0.3);">No drafts yet.</p>';
+    return;
+  }
+
+  el.innerHTML = drafts.map(d => `
+    <div class="admin-item-row">
+      <div class="admin-item-info">
+        <div class="admin-item-name">${d.name}</div>
+        <div class="admin-item-meta">new + ${d.garmentType} | ${d.measurements} | ${d.images.length + d.imageUrls.length} image(s)</div>
+      </div>
+      <div class="admin-item-price">${formatPkr(d.price)}</div>
+      <button class="admin-del-btn" onclick="removeDraft('${d.id}')">remove</button>
+    </div>
+  `).join('');
+}
+
+function removeDraft(id) {
+  Drafts.remove(id);
+  renderDrafts();
+}
+
+function clearDrafts() {
+  Drafts.clear();
+  renderDrafts();
+  showToast('Drafts cleared.');
+}
+
+async function postProduct(productDraft) {
+  const payload = {
+    type: 'add_product',
+    product: {
+      name: productDraft.name,
+      garmentType: productDraft.garmentType,
+      category: productDraft.category,
+      tags: productDraft.tags || ['new'],
+      cond: productDraft.cond,
+      price: productDraft.price,
+      measurements: productDraft.measurements,
+      meta: productDraft.measurements,
+      quantity: 1,
+      imageUrls: productDraft.imageUrls || [],
+      images: productDraft.images || []
+    }
+  };
+
+  const res = await window.DEE_API.postJson(payload);
+  return !!(res && (res.ok === true || res.queued === true));
+}
+
+async function postCurrentProductNow() {
+  const product = collectProductFromForm();
+  if (!product) return;
+  const ok = await postProduct(product);
+  if (!ok) {
+    showToast('Failed to post product.');
+    return;
+  }
+  resetProductForm();
+  await renderProducts();
+  showToast('Product posted.');
+}
+
+async function postAllDrafts() {
+  const drafts = Drafts.get();
+  if (drafts.length === 0) {
+    showToast('No drafts to post.');
+    return;
+  }
+
+  const keep = [];
+  let okCount = 0;
+
+  for (let i = 0; i < drafts.length; i++) {
+    const ok = await postProduct(drafts[i]);
+    if (ok) okCount += 1;
+    else keep.push(drafts[i]);
+  }
+
+  Drafts.save(keep);
+  renderDrafts();
+  await renderProducts();
+
+  if (okCount === drafts.length) showToast('All drafts posted.');
+  else showToast(okCount + ' posted, ' + keep.length + ' failed.');
 }
 
 async function renderProducts() {
@@ -382,40 +575,34 @@ async function renderProducts() {
     return;
   }
 
-  el.innerHTML = products.map(p => `
-    <div class="admin-item-row">
-      <img src="${getProductImageSrc(p.img, 96, 96)}" alt="">
-      <div class="admin-item-info">
-        <div class="admin-item-name">${p.name}</div>
-        <div class="admin-item-meta">${p.meta || '-'} - ${p.category} - ${productStatusLabel(p.status) || 'available'}</div>
+  el.innerHTML = products.map(p => {
+    const img = Array.isArray(p.images) && p.images.length ? p.images[0] : p.img;
+    const catLine = (p.categories || [p.category]).join(', ');
+    return `
+      <div class="admin-item-row">
+        <img src="${getProductImageSrc(img, 96, 96)}" alt="">
+        <div class="admin-item-info">
+          <div class="admin-item-name">${p.name}</div>
+          <div class="admin-item-meta">${p.meta || '-'} | ${catLine} | ${productStatusLabel(p.status) || 'available'}</div>
+        </div>
+        <div class="admin-item-price">${formatPkr(p.price)}</div>
+        <button class="admin-del-btn" onclick="deleteProduct('${p.id}')">remove</button>
       </div>
-      <div class="admin-item-price">$${Number(p.price || 0).toFixed(2)}</div>
-      <button class="admin-del-btn" onclick="deleteProduct('${p.id}')">remove</button>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 async function deleteProduct(productId) {
   if (!productId) return;
-  if (!confirm('Delete this product? This also deletes its Drive file if stored.')) return;
+  if (!confirm('Delete this product? This also deletes its Drive file(s) if stored.')) return;
 
-  try {
-    const res = await fetch(API_URL + '?redirect=false', {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ type: 'delete_product', productId })
-    });
-    const data = await res.json();
-    if (data.ok) {
-      showToast('Product deleted.');
-      await renderProducts();
-      return;
-    }
-    showToast(data.error || 'Delete failed.');
-  } catch (e) {
-    console.warn(e);
-    showToast('Delete failed.');
+  const data = await window.DEE_API.postJson({ type: 'delete_product', productId: productId });
+  if (data && (data.ok === true || data.queued === true)) {
+    showToast('Product deleted.');
+    await renderProducts();
+    return;
   }
+  showToast((data && data.error) ? data.error : 'Delete failed.');
 }
 
 async function renderOrders() {
@@ -455,7 +642,6 @@ async function confirmOrder(orderId) {
     showToast('Order confirmed. Product is now sold out.');
     await renderOrders();
     await renderProducts();
-    await renderCustomers();
   } else {
     showToast('Failed to confirm order.');
   }
@@ -463,38 +649,46 @@ async function confirmOrder(orderId) {
 
 async function markDelivered(orderId) {
   if (!orderId) return;
-  if (!confirm('Mark this order as delivered? This will remove product rows and delete Drive files.')) return;
+  if (!confirm('Mark this order as delivered? This will remove products and delete Drive files.')) return;
 
   const res = await Orders.setStatusRemote(orderId, 'Delivered', false);
   if (res.ok) {
     showToast('Order delivered. Product cleanup completed.');
     await renderOrders();
     await renderProducts();
-    await renderCustomers();
   } else {
     showToast('Failed to mark delivered.');
   }
 }
 
-async function renderCustomers() {
-  const custs = await Customers.getAll();
-  document.getElementById('custCount').textContent = custs.length;
+function initAdmin() {
+  if (adminBooted) return;
+  adminBooted = true;
 
-  const el = document.getElementById('custList');
-  if (custs.length === 0) {
-    el.innerHTML = '<p style="font-size:0.85em; color:rgba(255,255,255,0.3);">No customers yet.</p>';
-    return;
-  }
+  Products.setUrl(API_URL);
+  Orders.setUrl(API_URL);
 
-  el.innerHTML = custs.map(c => `
-    <div class="admin-item-row">
-      <div class="admin-item-info">
-        <div class="admin-item-name">${c.name || 'Unknown'}</div>
-        <div class="admin-item-meta">${c.phone || '-'} - latest status: ${c.latestOrderStatus || c.status || 'unknown'}</div>
-      </div>
-    </div>
-  `).join('');
+  document.getElementById('a-garment').addEventListener('change', renderMeasurementInputs);
+  document.getElementById('a-img-files').addEventListener('change', handleImageUpload);
+  document.getElementById('addDraftBtn').addEventListener('click', addToDrafts);
+  document.getElementById('postNowBtn').addEventListener('click', postCurrentProductNow);
+  document.getElementById('postDraftsBtn').addEventListener('click', postAllDrafts);
+  document.getElementById('clearDraftsBtn').addEventListener('click', clearDrafts);
+
+  renderMeasurementInputs();
+  renderDrafts();
+  renderProducts();
+  renderOrders();
 }
+
+document.getElementById('sendOtpBtn').addEventListener('click', sendOTP);
+document.getElementById('verifyOtpBtn').addEventListener('click', verifyOTP);
+document.getElementById('resendOtpBtn').addEventListener('click', () => {
+  showScreen('send');
+});
+document.getElementById('otpInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') verifyOTP();
+});
 
 document.addEventListener('DOMContentLoaded', () => {
   if (sessionStorage.getItem('dee_admin') === '1') {

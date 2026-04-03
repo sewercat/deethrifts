@@ -118,8 +118,8 @@
 <div class="toast-msg" id="toastEl"></div>
 <script src="cart.js"></script>
 <script>
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby4GFix50mKnAHSpDGi-WQU6emttDYLDu3usIyqK6ncTtFJKbqfKND_wJLHeI_UF3J8/exec";
-Orders.setUrl(GOOGLE_SCRIPT_URL);
+window.DEE_GOOGLE_SCRIPT_URL = window.DEE_GOOGLE_SCRIPT_URL || "https://script.google.com/macros/s/AKfycby4GFix50mKnAHSpDGi-WQU6emttDYLDu3usIyqK6ncTtFJKbqfKND_wJLHeI_UF3J8/exec";
+Orders.setUrl(window.DEE_GOOGLE_SCRIPT_URL);
 
 document.addEventListener('DOMContentLoaded', () => {
  const params = new URLSearchParams(window.location.search);
@@ -136,7 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
  const total = order ? order.total : 0;
  document.getElementById('paymentContext').textContent =
  'Please pay the full order amount below to confirm your order.';
- document.getElementById('paymentAmount').textContent = '$' + total.toFixed(2);
+ document.getElementById('paymentAmount').textContent = formatPkr(total);
  }
 
  const fileInput = document.getElementById('screenshotInput');
@@ -191,10 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
  const allOrders = Orders.getAll();
  const order = allOrders.find(o => o.id === oid);
  if (order) {
- await fetch(GOOGLE_SCRIPT_URL + '?redirect=false', {
- method: 'POST',
- headers: { 'Content-Type': 'text/plain;charset=utf-8' },
- body: JSON.stringify({
+ await window.DEE_API.postJson({
  type: 'payment_proof',
  orderId: oid,
  phone: order.phone || (order.customer && order.customer.phone) || '',
@@ -205,7 +202,6 @@ document.addEventListener('DOMContentLoaded', () => {
  amount: order.amount || '',
  screenshot: preview.src || '',
  paymentMode: 'prepaid'
- })
  });
  }
  } catch (e) {

@@ -1,4 +1,88 @@
 window.DEE_GOOGLE_SCRIPT_URL = window.DEE_GOOGLE_SCRIPT_URL || "https://script.google.com/macros/s/AKfycby4GFix50mKnAHSpDGi-WQU6emttDYLDu3usIyqK6ncTtFJKbqfKND_wJLHeI_UF3J8/exec";
+window.DEE_GOOGLE_SCRIPT_URL = String(window.DEE_GOOGLE_SCRIPT_URL || '').replace(/\/+$/, '');
+
+function buildApiUrl(params) {
+  const qp = new URLSearchParams(params || {});
+  if (!qp.has('redirect')) qp.set('redirect', 'false');
+  return window.DEE_GOOGLE_SCRIPT_URL + '?' + qp.toString();
+}
+
+function jsonpGet(url) {
+  return new Promise((resolve, reject) => {
+    const cbName = 'deeJsonp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    const script = document.createElement('script');
+    const timeout = setTimeout(() => {
+      cleanup();
+      reject(new Error('JSONP timeout'));
+    }, 15000);
+
+    function cleanup() {
+      clearTimeout(timeout);
+      try {
+        delete window[cbName];
+      } catch (_) {
+        window[cbName] = undefined;
+      }
+      if (script.parentNode) script.parentNode.removeChild(script);
+    }
+
+    window[cbName] = (data) => {
+      cleanup();
+      resolve(data);
+    };
+
+    script.onerror = () => {
+      cleanup();
+      reject(new Error('JSONP failed'));
+    };
+
+    const sep = url.includes('?') ? '&' : '?';
+    script.src = url + sep + 'callback=' + encodeURIComponent(cbName);
+    document.body.appendChild(script);
+  });
+}
+
+async function apiGetJson(params) {
+  const url = buildApiUrl(params);
+  try {
+    return await jsonpGet(url);
+  } catch (_) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return await res.json();
+  }
+}
+
+async function apiPostJson(body) {
+  const url = buildApiUrl({});
+  const req = {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(body || {})
+  };
+
+  try {
+    // Prefer no-cors for GitHub Pages + Apps Script to avoid CORS blocks on response reading.
+    await fetch(url, { ...req, mode: 'no-cors' });
+    return { ok: true, queued: true, corsBypass: true };
+  } catch (_) {
+    // Fallback: if no-cors is blocked by policy, try standard CORS fetch.
+    const res = await fetch(url, req);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return await res.json();
+  }
+}
+
+window.DEE_API = {
+  getJson: apiGetJson,
+  postJson: apiPostJson
+};
+
+function formatPkr(value) {
+  const n = Number(value || 0);
+  if (!Number.isFinite(n)) return 'Rs 0';
+  return 'Rs ' + Math.round(n).toLocaleString('en-PK');
+}
 
 const PRODUCT_STATUS = {
   AVAILABLE: 'available',
@@ -6,7 +90,7 @@ const PRODUCT_STATUS = {
   SOLD_OUT: 'sold_out'
 };
 
-const CATEGORY_FALLBACK_ORDER = ['new', 'dresses', 'tops', 'bottoms'];
+const CATEGORY_FALLBACK_ORDER = ['new', 'shirts', 'bottoms', 'accessories', 'dresses', 'tops', 'misc'];
 const CATEGORIES = [];
 
 function normalizeCategoryKey(value) {
@@ -28,24 +112,48 @@ function normalizeProduct(raw) {
     raw.productId || raw.product_id || raw.id || raw['Product ID'] || ''
   ).trim();
 
-  const category = normalizeCategoryKey(raw.category || raw.Category || 'misc');
+  const garmentType = normalizeCategoryKey(raw.garmentType || raw.garment_type || raw.category || raw.Category || 'accessories');
+  const tags = []
+    .concat(Array.isArray(raw.tags) ? raw.tags : String(raw.tags || raw.Tags || '').split(','))
+    .map(v => normalizeCategoryKey(v))
+    .filter(Boolean);
+  if (tags.indexOf('new') === -1) tags.push('new');
+
+  const categories = [garmentType]
+    .concat(tags)
+    .map(v => normalizeCategoryKey(v))
+    .filter((v, i, arr) => v && arr.indexOf(v) === i);
+
   const statusRaw = String(raw.status || raw.Status || PRODUCT_STATUS.AVAILABLE).toLowerCase().trim();
   const status = [PRODUCT_STATUS.AVAILABLE, PRODUCT_STATUS.PENDING, PRODUCT_STATUS.SOLD_OUT].includes(statusRaw)
     ? statusRaw
     : PRODUCT_STATUS.AVAILABLE;
 
+  const imageUrls = []
+    .concat(Array.isArray(raw.imageUrls) ? raw.imageUrls : String(raw.imageUrls || raw.images || raw['Image URLs'] || '').split(','))
+    .map(v => String(v || '').trim())
+    .filter(Boolean);
+  const primaryImg = String(raw.imageUrl || raw.image || raw.img || raw['Image URL'] || imageUrls[0] || '').trim();
+  if (primaryImg && imageUrls.indexOf(primaryImg) === -1) imageUrls.unshift(primaryImg);
+
+  const measurements = String(raw.measurements || raw.Measurements || raw.meta || raw.Meta || '').trim();
   const priceNum = Number(raw.price ?? raw.Price ?? 0);
 
   return {
     id,
     name: String(raw.name || raw.Name || '').trim() || 'Unnamed product',
-    meta: String(raw.meta || raw.Meta || '').trim(),
+    meta: measurements,
     price: Number.isFinite(priceNum) ? priceNum : 0,
     cond: String(raw.cond || raw.condition || raw.Condition || 'good').toLowerCase().trim() || 'good',
-    img: String(raw.imageUrl || raw.image || raw.img || raw['Image URL'] || '').trim(),
-    category,
+    img: primaryImg,
+    images: imageUrls.slice(0, 5),
+    category: garmentType,
+    garmentType,
+    tags,
+    categories,
     status,
-    orderId: String(raw.orderId || raw['Reserved Order ID'] || '').trim()
+    orderId: String(raw.orderId || raw['Reserved Order ID'] || '').trim(),
+    qty: 1
   };
 }
 
@@ -73,8 +181,7 @@ const Products = {
   async refresh() {
     if (!this._url) return this.getCached();
     try {
-      const res = await fetch(this._url + '?redirect=false&action=products');
-      const data = await res.json();
+      const data = await window.DEE_API.getJson({ action: 'products' });
       const products = Array.isArray(data.products) ? data.products.map(normalizeProduct).filter(p => p.id) : [];
       this._saveCache(products);
       return products;
@@ -119,7 +226,10 @@ function getAllProducts() {
 
 function getByCategory(cat) {
   const key = normalizeCategoryKey(cat);
-  return getAllProducts().filter(p => p.category === key);
+  return getAllProducts().filter(p => {
+    const list = Array.isArray(p.categories) ? p.categories : [p.category];
+    return list.includes(key);
+  });
 }
 
 function getCountByCategory(cat) {
@@ -133,16 +243,19 @@ function findProduct(id) {
 function getCategories() {
   const byKey = new Map();
   getAllProducts().forEach(p => {
-    if (!byKey.has(p.category)) {
-      byKey.set(p.category, {
-        key: p.category,
-        label: titleCaseCategory(p.category),
-        img: p.img,
-        count: 0
-      });
-    }
-    byKey.get(p.category).count += 1;
-    if (!byKey.get(p.category).img && p.img) byKey.get(p.category).img = p.img;
+    const list = Array.isArray(p.categories) && p.categories.length ? p.categories : [p.category];
+    list.forEach(catKey => {
+      if (!byKey.has(catKey)) {
+        byKey.set(catKey, {
+          key: catKey,
+          label: titleCaseCategory(catKey),
+          img: p.img,
+          count: 0
+        });
+      }
+      byKey.get(catKey).count += 1;
+      if (!byKey.get(catKey).img && p.img) byKey.get(catKey).img = p.img;
+    });
   });
 
   const categories = Array.from(byKey.values());
@@ -169,8 +282,7 @@ const Customers = {
     if (!this._url) return { returning: false, codBlocked: false, latestOrderStatus: '' };
     try {
       const clean = String(phone || '').replace(/\D/g, '');
-      const res = await fetch(this._url + '?redirect=false&phone=' + encodeURIComponent(clean));
-      const data = await res.json();
+      const data = await window.DEE_API.getJson({ phone: clean });
       return {
         returning: data.returning === true,
         codBlocked: data.codBlocked === true || data.codAllowed === false,
@@ -185,8 +297,7 @@ const Customers = {
   async getAll() {
     if (!this._url) return [];
     try {
-      const res = await fetch(this._url + '?redirect=false&action=customers');
-      const data = await res.json();
+      const data = await window.DEE_API.getJson({ action: 'customers' });
       return Array.isArray(data.customers) ? data.customers : [];
     } catch (e) {
       console.warn('Customer list fetch failed:', e);
@@ -239,10 +350,7 @@ const Orders = {
   async getOrdersRemote(status) {
     if (!this._url) return [];
     try {
-      let url = this._url + '?redirect=false&action=orders';
-      if (status) url += '&status=' + encodeURIComponent(status);
-      const res = await fetch(url);
-      const data = await res.json();
+      const data = await window.DEE_API.getJson({ action: 'orders', status: status || '' });
       return Array.isArray(data.orders) ? data.orders : [];
     } catch (e) {
       console.warn('Order list fetch failed:', e);
@@ -257,17 +365,12 @@ const Orders = {
   async setConfirmedRemote(orderId, notifyWhatsApp) {
     if (!this._url) return { ok: false, reason: 'no_url' };
     try {
-      const res = await fetch(this._url + '?redirect=false', {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({
-          type: 'set_confirmation',
-          orderId,
-          confirmed: true,
-          notifyWhatsApp: notifyWhatsApp === true
-        })
+      return await window.DEE_API.postJson({
+        type: 'set_confirmation',
+        orderId,
+        confirmed: true,
+        notifyWhatsApp: notifyWhatsApp === true
       });
-      return await res.json();
     } catch (e) {
       console.warn('Order confirmation update failed:', e);
       return { ok: false, reason: 'connection_error' };
@@ -277,17 +380,12 @@ const Orders = {
   async setStatusRemote(orderId, status, notifyWhatsApp) {
     if (!this._url) return { ok: false, reason: 'no_url' };
     try {
-      const res = await fetch(this._url + '?redirect=false', {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({
-          type: 'set_order_status',
-          orderId,
-          status,
-          notifyWhatsApp: notifyWhatsApp === true
-        })
+      return await window.DEE_API.postJson({
+        type: 'set_order_status',
+        orderId,
+        status,
+        notifyWhatsApp: notifyWhatsApp === true
       });
-      return await res.json();
     } catch (e) {
       console.warn('Order status update failed:', e);
       return { ok: false, reason: 'connection_error' };
@@ -415,18 +513,19 @@ function buildCard(p) {
   const addAction = canBuy ? `onclick="event.stopPropagation(); Cart.add('${p.id}')"` : '';
 
   const card = document.createElement('div');
+  const displayImg = Array.isArray(p.images) && p.images.length ? p.images[0] : p.img;
   card.className = 'shop-card hover-tint';
   card.innerHTML = `
     <div style="position:relative;">
       <span class="shop-card-condition ${p.cond}">${p.cond}</span>
       ${statusBadge}
-      <img class="shop-card-img" src="${getProductImageSrc(p.img, 360, 360)}" alt="${p.name}">
+      <img class="shop-card-img" src="${getProductImageSrc(displayImg, 360, 360)}" alt="${p.name}">
     </div>
     <div class="shop-card-body">
       <div class="shop-card-name">${p.name}</div>
       <div class="shop-card-meta">${p.meta || ''}</div>
       <div class="shop-card-bottom">
-        <div class="shop-card-price">$${Number(p.price || 0).toFixed(2)}</div>
+        <div class="shop-card-price">${formatPkr(p.price)}</div>
         <button class="${addBtnClass}" ${addAction}>${addBtnLabel}</button>
       </div>
     </div>

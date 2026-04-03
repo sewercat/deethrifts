@@ -79,17 +79,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   picks.forEach(p => {
+    const featureImg = Array.isArray(p.images) && p.images.length ? p.images[0] : p.img;
     const a = document.createElement('a');
     a.href = 'shop.html#' + p.category;
     a.style.cssText = 'text-align:center; text-decoration:none; transition:all 0.2s; width:160px;';
     a.innerHTML = `
-      <img src=\"${getProductImageSrc(p.img, 320, 320)}\"
+      <img src=\"${getProductImageSrc(featureImg, 320, 320)}\"
            style=\"width:160px;height:160px;object-fit:cover;border-radius:8px;
                   border:2px solid rgba(0,0,0,0.15);
                   box-shadow:0px 3px 6px rgba(0,0,0,0.2),inset 0px 1px 1px rgba(255,255,255,0.15);
                   margin-bottom:8px;display:block;\">
       <div style=\"font-size:0.9em;color:rgba(255,255,255,0.8);text-shadow:0px -1px 1px rgba(0,0,0,0.2);\">${p.name}</div>
-      <div style=\"font-size:1em;color:#ffb0cc;font-weight:500;text-shadow:0px -1px 1px rgba(0,0,0,0.2);\">$${Number(p.price || 0).toFixed(2)}</div>
+      <div style=\"font-size:1em;color:#ffb0cc;font-weight:500;text-shadow:0px -1px 1px rgba(0,0,0,0.2);\">${formatPkr(p.price)}</div>
       ${p.status && p.status !== 'available' ? `<div style=\"font-size:0.72em;color:rgba(255,210,150,0.85);margin-top:4px;\">${productStatusLabel(p.status)}</div>` : ''}
     `;
     a.onmouseenter = () => { a.style.filter = 'brightness(90%)'; a.style.transform = 'scale(1.02)'; };
