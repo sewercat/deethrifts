@@ -500,6 +500,21 @@ function addToDrafts() {
   showToast('Added to drafts.');
 }
 
+async function postCurrentProductNow() {
+  const draft = collectProductFromForm();
+  if (!draft) return;
+  showToast('Posting product…');
+  const ok = await postProduct(draft);
+  if (ok) {
+    resetProductForm();
+    renderDrafts();
+    renderProducts();
+    showToast('Product posted!');
+  } else {
+    showToast('Failed to post product.');
+  }
+}
+
 function renderDrafts() {
   const drafts = Drafts.get();
   document.getElementById('draftCount').textContent = drafts.length;
