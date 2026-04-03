@@ -136,7 +136,8 @@
 
 <script src="cart.js"></script>
 <script>
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby4GFix50mKnAHSpDGi-WQU6emttDYLDu3usIyqK6ncTtFJKbqfKND_wJLHeI_UF3J8/exec";
+window.DEE_GOOGLE_SCRIPT_URL = window.DEE_GOOGLE_SCRIPT_URL || "https://script.google.com/macros/s/AKfycby4GFix50mKnAHSpDGi-WQU6emttDYLDu3usIyqK6ncTtFJKbqfKND_wJLHeI_UF3J8/exec";
+const API_URL = window.DEE_GOOGLE_SCRIPT_URL;
 const OTP_EXPIRY_MINUTES = 5;
 const COOLDOWN_SECONDS = 60;
 
@@ -150,18 +151,36 @@ const OTP = {
 
   async send() {
     const code = this.generate();
-    await fetch(GOOGLE_SCRIPT_URL + '?redirect=false', {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ type: 'otp', code, expires: OTP_EXPIRY_MINUTES })
-    });
+    try {
+      const res = await fetch(API_URL + '?redirect=false', {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ type: 'otp', code, expires: OTP_EXPIRY_MINUTES })
+      });
+      if (res.ok) return code;
+    } catch (_) {
+      // fallback to GET for older Apps Script deployments
+    }
+
+    const fallback = await fetch(
+      API_URL
+      + '?redirect=false&type=otp&code=' + encodeURIComponent(code)
+      + '&expires=' + encodeURIComponent(String(OTP_EXPIRY_MINUTES))
+    );
+    if (!fallback.ok) {
+      throw new Error('OTP request failed with HTTP ' + fallback.status);
+    }
+
     return code;
   },
 
   async verify(code) {
     const res = await fetch(
-      GOOGLE_SCRIPT_URL + '?redirect=false&action=verify_otp&code=' + encodeURIComponent(code.trim())
+      API_URL + '?redirect=false&action=verify_otp&code=' + encodeURIComponent(code.trim())
     );
+    if (!res.ok) {
+      throw new Error('Verify request failed with HTTP ' + res.status);
+    }
     return await res.json();
   }
 };
@@ -197,6 +216,7 @@ async function sendOTP() {
   } catch (e) {
     console.warn(e);
     showToast('Failed to generate OTP.');
+    showOtpError((e && e.message) ? e.message : 'Could not reach Apps Script.');
     btn.textContent = 'Generate Access Code';
     btn.disabled = false;
   }
@@ -259,9 +279,9 @@ function startCooldown(remaining) {
 }
 
 function initAdmin() {
-  Products.setUrl(GOOGLE_SCRIPT_URL);
-  Customers.setUrl(GOOGLE_SCRIPT_URL);
-  Orders.setUrl(GOOGLE_SCRIPT_URL);
+  Products.setUrl(API_URL);
+  Customers.setUrl(API_URL);
+  Orders.setUrl(API_URL);
 
   const fileInput = document.getElementById('a-img-file');
   fileInput.addEventListener('change', handleImageUpload);
@@ -311,7 +331,7 @@ async function addProduct() {
   }
 
   try {
-    const res = await fetch(GOOGLE_SCRIPT_URL + '?redirect=false', {
+    const res = await fetch(API_URL + '?redirect=false', {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({
@@ -380,7 +400,7 @@ async function deleteProduct(productId) {
   if (!confirm('Delete this product? This also deletes its Drive file if stored.')) return;
 
   try {
-    const res = await fetch(GOOGLE_SCRIPT_URL + '?redirect=false', {
+    const res = await fetch(API_URL + '?redirect=false', {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ type: 'delete_product', productId })

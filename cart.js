@@ -1,4 +1,4 @@
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby4GFix50mKnAHSpDGi-WQU6emttDYLDu3usIyqK6ncTtFJKbqfKND_wJLHeI_UF3J8/exec";
+window.DEE_GOOGLE_SCRIPT_URL = window.DEE_GOOGLE_SCRIPT_URL || "https://script.google.com/macros/s/AKfycby4GFix50mKnAHSpDGi-WQU6emttDYLDu3usIyqK6ncTtFJKbqfKND_wJLHeI_UF3J8/exec";
 
 const PRODUCT_STATUS = {
   AVAILABLE: 'available',
@@ -50,7 +50,7 @@ function normalizeProduct(raw) {
 }
 
 const Products = {
-  _url: GOOGLE_SCRIPT_URL,
+  _url: window.DEE_GOOGLE_SCRIPT_URL,
   _cacheKey: 'dee_products_cache',
 
   setUrl(url) {
@@ -159,7 +159,7 @@ function getCategories() {
 }
 
 const Customers = {
-  _url: GOOGLE_SCRIPT_URL,
+  _url: window.DEE_GOOGLE_SCRIPT_URL,
 
   setUrl(url) {
     this._url = url;
@@ -197,7 +197,7 @@ const Customers = {
 
 const Orders = {
   _key: 'dee_pending_orders',
-  _url: GOOGLE_SCRIPT_URL,
+  _url: window.DEE_GOOGLE_SCRIPT_URL,
 
   setUrl(url) {
     this._url = url;
@@ -437,9 +437,9 @@ function buildCard(p) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  Products.setUrl(GOOGLE_SCRIPT_URL);
-  Customers.setUrl(GOOGLE_SCRIPT_URL);
-  Orders.setUrl(GOOGLE_SCRIPT_URL);
+  Products.setUrl(window.DEE_GOOGLE_SCRIPT_URL);
+  Customers.setUrl(window.DEE_GOOGLE_SCRIPT_URL);
+  Orders.setUrl(window.DEE_GOOGLE_SCRIPT_URL);
   Cart.updateBadge();
 
   const page = document.body.dataset.page;
