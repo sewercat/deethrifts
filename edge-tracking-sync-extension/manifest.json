@@ -1,0 +1,18 @@
+﻿{
+  "manifest_version": 3,
+  "name": "DeeThrifts Tracking Sync",
+  "version": "1.0.0",
+  "description": "Sync MS Royal tracking numbers to DeeThrifts orders.",
+  "permissions": ["storage", "tabs", "scripting", "alarms"],
+  "host_permissions": [
+    "https://msroyal.pk/*",
+    "https://deethrifts.store/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Dee Tracking Sync",
+    "default_popup": "popup.html"
+  }
+}

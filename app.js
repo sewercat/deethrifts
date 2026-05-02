@@ -57,7 +57,7 @@ function escapeHtml(v) {
 }
 
 const PRODUCT_STATUS = { AVAILABLE: 'available', PENDING: 'confirmation_pending', SOLD_OUT: 'sold_out' };
-const CATEGORY_FALLBACK_ORDER = ['new', 'bottoms', 'accessories', 'dresses', 'tops', 'bags', 'desi', 'misc'];
+const CATEGORY_FALLBACK_ORDER = ['available', 'sale', 'new', 'tops', 'bottoms', 'dresses', 'bags', 'desi', 'accessories', 'tech', 'misc'];
 
 function normalizeCategoryKey(v) {
   const key = String(v || 'accessories')
@@ -72,6 +72,8 @@ function normalizeCategoryKey(v) {
 
 function titleCaseCategory(v) {
   const key = normalizeCategoryKey(v);
+  if (key === 'available') return 'Available';
+  if (key === 'sale') return 'Sale';
   if (key === 'new') return 'New Arrivals';
   return String(key || '').replace(/_/g, ' ').replace(/\b\w/g, m => m.toUpperCase());
 }
@@ -90,12 +92,35 @@ function normalizeDefects(value) {
   return text || 'No known defects';
 }
 
+function isVideoCategory(categoryKey) {
+  var key = normalizeCategoryKey(categoryKey || '');
+  return key === 'tech' || key === 'misc';
+}
+
 function normalizeProduct(raw) {
   const id = String(raw.productId || raw.id || '').trim();
   const garmentType = normalizeCategoryKey(raw.garmentType || raw.category || 'accessories');
+  const price = Number(raw.price) || 0;
+  let salePercent = Math.max(0, Math.min(90, parseInt(raw.salePercent || raw.sale_percent || 0, 10) || 0));
+  let saleActive = !!(parseInt(raw.saleActive || raw.sale_active || 0, 10));
+  let basePrice = Number(raw.basePrice || raw.base_price) || 0;
+
+  // Fallbacks for older/inconsistent rows so sale still renders correctly.
+  if (basePrice <= 0 && salePercent > 0) {
+    const inferred = salePercent >= 100 ? price : Math.round(price / (1 - (salePercent / 100)));
+    if (Number.isFinite(inferred) && inferred > price) basePrice = inferred;
+  }
+  if (!saleActive && basePrice > 0 && price > 0 && price < basePrice) {
+    saleActive = true;
+  }
+  if ((salePercent <= 0 || !Number.isFinite(salePercent)) && basePrice > 0 && price > 0 && price < basePrice) {
+    salePercent = Math.max(1, Math.min(90, Math.round(((basePrice - price) / basePrice) * 100)));
+  }
+  const isOnSale = saleActive && salePercent > 0 && basePrice > price;
   const tags = [].concat(raw.tags || ['new']).map(normalizeCategoryKey).filter(Boolean);
   if (!tags.includes('new')) tags.push('new');
   const categories = [garmentType].concat(tags).filter((v, i, a) => v && a.indexOf(v) === i);
+  if (isOnSale && categories.indexOf('sale') === -1) categories.push('sale');
 
   const statusRaw = String(raw.status || PRODUCT_STATUS.AVAILABLE).toLowerCase().trim();
   const status = [PRODUCT_STATUS.AVAILABLE, PRODUCT_STATUS.PENDING, PRODUCT_STATUS.SOLD_OUT].includes(statusRaw)
@@ -105,15 +130,29 @@ function normalizeProduct(raw) {
     .map(v => String(v || '').trim()).filter(Boolean);
   const primaryImg = String(raw.imageUrl || raw.img || imageUrls[0] || '').trim();
   if (primaryImg && !imageUrls.includes(primaryImg)) imageUrls.unshift(primaryImg);
+  var videoUrls = [];
+  var primaryVideo = '';
+  if (isVideoCategory(garmentType)) {
+    videoUrls = [].concat(raw.videoUrls || raw.videos || [])
+      .map(v => String(v || '').trim()).filter(Boolean);
+    primaryVideo = String(raw.videoUrl || raw.video_url || videoUrls[0] || '').trim();
+    if (primaryVideo && !videoUrls.includes(primaryVideo)) videoUrls.unshift(primaryVideo);
+  }
 
   return {
     id,
     name: String(raw.name || '').trim() || 'Unnamed',
     meta: String(raw.measurements || raw.meta || '').trim(),
     description: String(raw.description || raw.desc || '').trim(),
-    price: Number(raw.price) || 0,
+    price: price,
+    basePrice: basePrice,
+    salePercent: salePercent,
+    saleActive: saleActive,
+    isOnSale: isOnSale,
     cond: normalizeCondition(raw.cond || ''),
     defects: normalizeDefects(raw.defects || ''),
+    videoUrl: primaryVideo,
+    videoUrls: videoUrls.slice(0, 5),
     img: primaryImg,
     images: imageUrls.slice(0, 5),
     category: garmentType,
@@ -170,6 +209,33 @@ function setModalMainImage(mainWrap, mainImg, src, altText) {
   }
   fallbackEl.style.display = 'flex';
   return false;
+}
+
+function normalizeVideoUrl(url) {
+  var raw = String(url || '').trim();
+  if (!raw) return '';
+  if (/^https?:\/\//i.test(raw)) return raw;
+  if (raw.charAt(0) === '/') return raw;
+  return '';
+}
+
+function getVideoEmbedUrl(url) {
+  var raw = normalizeVideoUrl(url);
+  if (!raw) return '';
+  try {
+    var u = new URL(raw);
+    var host = String(u.hostname || '').toLowerCase();
+    if (host.includes('youtube.com')) {
+      var id = u.searchParams.get('v');
+      if (!id && u.pathname.indexOf('/shorts/') === 0) id = u.pathname.split('/')[2] || '';
+      if (id) return 'https://www.youtube.com/embed/' + id;
+    }
+    if (host === 'youtu.be') {
+      var p = u.pathname.replace(/^\/+/, '');
+      if (p) return 'https://www.youtube.com/embed/' + p;
+    }
+  } catch (_) {}
+  return '';
 }
 
 function productStatusLabel(s) {
@@ -257,6 +323,9 @@ const Products = {
 function getAllProducts() { return Products.getAll(); }
 function getByCategory(cat) {
   const key = normalizeCategoryKey(cat);
+  if (key === 'available') {
+    return getAllProducts().filter(p => String(p.status || '').toLowerCase() === PRODUCT_STATUS.AVAILABLE);
+  }
   return getAllProducts().filter(p => (p.categories || [p.category]).includes(key));
 }
 function getCountByCategory(cat) { return getByCategory(cat).length; }
@@ -265,6 +334,7 @@ function findProduct(id) { return getAllProducts().find(p => p.id === id); }
 function getCategories() {
   const byKey = new Map();
   const allProducts = getAllProducts();
+  const availableProducts = allProducts.filter(p => String(p.status || '').toLowerCase() === PRODUCT_STATUS.AVAILABLE);
 
   CATEGORY_FALLBACK_ORDER
     .map(normalizeCategoryKey)
@@ -280,6 +350,12 @@ function getCategories() {
       if (!byKey.get(key).img && p.img) byKey.get(key).img = p.img;
     });
   });
+
+  if (byKey.has('available')) {
+    const cat = byKey.get('available');
+    cat.count = availableProducts.length;
+    if (!cat.img && availableProducts.length) cat.img = availableProducts[0].img || '';
+  }
 
   const productsById = new Map(allProducts.map(p => [p.id, p]));
   const coverMap = CategoryCovers.getMap();
@@ -499,6 +575,10 @@ function buildCard(p) {
   const canBuy = isProductBuyable(p.status);
   const st = productStatusLabel(p.status);
   const statusBadge = st ? '<span class="shop-card-status ' + p.status + '">' + escapeHtml(st) + '</span>' : '';
+  const saleBadge = p.isOnSale ? '<span class="shop-card-sale-badge">-' + Math.round(p.salePercent) + '%</span>' : '';
+  const priceHtml = p.isOnSale
+    ? '<div class="shop-card-price"><span class="shop-card-price-old">' + formatPkr(p.basePrice) + '</span><span class="shop-card-price-new">' + formatPkr(p.price) + '</span></div>'
+    : '<div class="shop-card-price">' + formatPkr(p.price) + '</div>';
   const card = document.createElement('div');
   const displayImg = (p.images && p.images[0]) || p.img;
 
@@ -506,6 +586,7 @@ function buildCard(p) {
   card.innerHTML =
     '<div class="shop-card-media">' +
       '<span class="shop-card-condition">' + escapeHtml(p.cond) + '</span>' +
+      saleBadge +
       statusBadge +
       getImageOrFallbackHtml(displayImg, p.name, 'shop-card-img', '', 'shop-card-img no-image-fallback') +
     '</div>' +
@@ -513,7 +594,7 @@ function buildCard(p) {
       '<div class="shop-card-name">' + escapeHtml(p.name) + '</div>' +
       '<div class="shop-card-meta">' + escapeHtml(p.meta || '') + '</div>' +
       '<div class="shop-card-bottom">' +
-        '<div class="shop-card-price">' + formatPkr(p.price) + '</div>' +
+        priceHtml +
         '<button class="shop-card-add' + (canBuy ? '' : ' disabled') + '" data-pid="' + escapeHtml(p.id) + '">' +
           (canBuy ? '+' : '-') +
         '</button>' +
@@ -534,6 +615,7 @@ function buildCard(p) {
 
 /* Product modal + zoom */
 window._productModalImages = [];
+window._productModalMedia = [];
 window._productModalIndex = 0;
 window._productModalZoomed = false;
 
@@ -562,28 +644,80 @@ window.toggleModalZoom = function(forceState) {
   setModalZoom(next);
 };
 
-window.openProductModal = function(p) {
-  const overlay = document.getElementById('productModal');
-  if (!overlay) return;
+function isDirectVideoUrl(url) {
+  var raw = String(url || '').trim();
+  return /\.(mp4|webm|ogg|mov)(\?|#|$)/i.test(raw) || raw.charAt(0) === '/';
+}
 
-  let imgs = [];
-  if (Array.isArray(p.images) && p.images.length) imgs = p.images.map(function(v) { return String(v || '').trim(); }).filter(Boolean);
-  else if (p.img) imgs = [String(p.img).trim()].filter(Boolean);
-  if (!imgs.length) imgs = [''];
+function buildModalMediaList(product) {
+  var items = [];
+  var imgs = [];
+  if (Array.isArray(product.images) && product.images.length) {
+    imgs = product.images.map(function(v) { return String(v || '').trim(); }).filter(Boolean);
+  } else if (product.img) {
+    imgs = [String(product.img).trim()].filter(Boolean);
+  }
+  imgs.forEach(function(url) {
+    items.push({ type: 'image', url: url });
+  });
 
-  const canBuy = isProductBuyable(p.status);
-  const st = productStatusLabel(p.status);
+  var vids = [].concat(product.videoUrls || []);
+  if ((!vids || !vids.length) && product.videoUrl) vids = [product.videoUrl];
+  vids = vids.map(function(v) { return normalizeVideoUrl(v); }).filter(Boolean).slice(0, 5);
+  vids.forEach(function(url) {
+    items.push({ type: 'video', url: url, embed: getVideoEmbedUrl(url), direct: isDirectVideoUrl(url) });
+  });
 
-  window._productModalImages = imgs;
-  window._productModalIndex = 0;
-  setModalZoom(false);
+  if (!items.length) items = [{ type: 'image', url: '' }];
+  return items;
+}
 
+function setModalMainMedia(mainWrap, mainImg, mediaItem, altText) {
+  if (!mainWrap || !mainImg) return false;
+  var item = mediaItem || { type: 'image', url: '' };
+  mainWrap.classList.remove('is-video');
+  mainWrap.querySelectorAll('.modal-main-media-extra').forEach(function(el) { el.remove(); });
+
+  if (item.type === 'video') {
+    setModalMainImage(mainWrap, mainImg, '', altText);
+    mainWrap.classList.add('is-video');
+    var holder;
+    if (item.embed) {
+      holder = document.createElement('iframe');
+      holder.src = item.embed;
+      holder.title = 'Product video';
+      holder.loading = 'lazy';
+      holder.referrerPolicy = 'strict-origin-when-cross-origin';
+      holder.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+      holder.allowFullscreen = true;
+      holder.className = 'modal-main-embed modal-main-media-extra';
+    } else if (item.direct) {
+      holder = document.createElement('video');
+      holder.className = 'modal-main-video modal-main-media-extra';
+      holder.controls = true;
+      holder.preload = 'metadata';
+      holder.src = item.url;
+    } else {
+      holder = document.createElement('a');
+      holder.href = item.url || '#';
+      holder.target = '_blank';
+      holder.rel = 'noopener';
+      holder.className = 'aero-btn modal-main-video-link modal-main-media-extra';
+      holder.textContent = 'Open Video';
+    }
+    mainWrap.appendChild(holder);
+    return false;
+  }
+
+  const src = getProductImageSrc(item.url || '');
+  return setModalMainImage(mainWrap, mainImg, src, altText);
+}
+
+function bindModalImageInteractions(overlay, enableImageZoom) {
   const mainImg = overlay.querySelector('.modal-main-img');
   const mainWrap = overlay.querySelector('.modal-main-img-wrap');
-  const firstUrl = getProductImageSrc(imgs[0] || '');
-  const hasMainImage = setModalMainImage(mainWrap, mainImg, firstUrl, p.name || 'Product image');
-
-  if (hasMainImage) {
+  if (!mainImg) return;
+  if (enableImageZoom) {
     mainImg.onclick = function(e) {
       e.stopPropagation();
       window.toggleModalZoom();
@@ -605,17 +739,43 @@ window.openProductModal = function(p) {
     mainImg.onmousemove = null;
     if (mainWrap) mainWrap.onmouseleave = null;
   }
+}
+
+window.openProductModal = function(p) {
+  const overlay = document.getElementById('productModal');
+  if (!overlay) return;
+
+  const mediaItems = buildModalMediaList(p);
+
+  const canBuy = isProductBuyable(p.status);
+  const st = productStatusLabel(p.status);
+
+  window._productModalImages = mediaItems.filter(function(m) { return m.type === 'image'; }).map(function(m) { return m.url; });
+  window._productModalMedia = mediaItems;
+  window._productModalIndex = 0;
+  setModalZoom(false);
+
+  const mainImg = overlay.querySelector('.modal-main-img');
+  const mainWrap = overlay.querySelector('.modal-main-img-wrap');
+  const hasMainImage = setModalMainMedia(mainWrap, mainImg, mediaItems[0], p.name || 'Product image');
+  bindModalImageInteractions(overlay, hasMainImage);
 
   const thumbsContainer = overlay.querySelector('.modal-thumbs');
   thumbsContainer.innerHTML = '';
-  const validThumbs = imgs.filter(function(url) { return !!getProductImageSrc(url); });
-  imgs.forEach(function(url, i) {
-    const thumbSrc = getProductImageSrc(url);
-    if (!thumbSrc) return;
-    const thumb = document.createElement('img');
-    thumb.className = 'modal-thumb' + (i === 0 ? ' active' : '');
-    thumb.src = thumbSrc;
-    thumb.alt = 'Image ' + (i + 1);
+  const validThumbs = mediaItems.filter(function(item) { return item.type !== 'image' || !!getProductImageSrc(item.url); });
+  mediaItems.forEach(function(item, i) {
+    if (item.type === 'image' && !getProductImageSrc(item.url)) return;
+    var thumb = document.createElement('button');
+    thumb.type = 'button';
+    thumb.className = 'modal-thumb' + (i === 0 ? ' active' : '') + (item.type === 'video' ? ' modal-thumb-video' : '');
+    if (item.type === 'video') {
+      thumb.innerHTML = '<span class="modal-thumb-video-label">Video</span>';
+    } else {
+      const thumbImg = document.createElement('img');
+      thumbImg.src = getProductImageSrc(item.url);
+      thumbImg.alt = 'Image ' + (i + 1);
+      thumb.appendChild(thumbImg);
+    }
     thumb.addEventListener('click', function() {
       window._productModalIndex = i;
       updateModalImage();
@@ -652,7 +812,14 @@ window.openProductModal = function(p) {
     statusEl.style.display = 'none';
   }
 
-  overlay.querySelector('.modal-price').textContent = formatPkr(p.price);
+  var modalPriceEl = overlay.querySelector('.modal-price');
+  if (modalPriceEl) {
+    if (p.isOnSale) {
+      modalPriceEl.innerHTML = '<span class="modal-price-old">' + formatPkr(p.basePrice) + '</span> <span class="modal-price-new">' + formatPkr(p.price) + '</span> <span class="modal-sale-tag">-' + Math.round(p.salePercent) + '%</span>';
+    } else {
+      modalPriceEl.textContent = formatPkr(p.price);
+    }
+  }
 
   const addBtn = overlay.querySelector('.modal-add');
   if (canBuy) {
@@ -693,18 +860,18 @@ window.closeProductModal = function() {
 };
 
 window.nextProductImage = function() {
-  let imgs = window._productModalImages;
-  if (!imgs || !imgs.length) imgs = window._productModalImages = [''];
-  if (imgs.length <= 1) return;
-  window._productModalIndex = (window._productModalIndex + 1) % imgs.length;
+  let items = window._productModalMedia;
+  if (!items || !items.length) items = window._productModalMedia = [{ type: 'image', url: '' }];
+  if (items.length <= 1) return;
+  window._productModalIndex = (window._productModalIndex + 1) % items.length;
   updateModalImage();
 };
 
 window.prevProductImage = function() {
-  let imgs = window._productModalImages;
-  if (!imgs || !imgs.length) imgs = window._productModalImages = [''];
-  if (imgs.length <= 1) return;
-  window._productModalIndex = (window._productModalIndex - 1 + imgs.length) % imgs.length;
+  let items = window._productModalMedia;
+  if (!items || !items.length) items = window._productModalMedia = [{ type: 'image', url: '' }];
+  if (items.length <= 1) return;
+  window._productModalIndex = (window._productModalIndex - 1 + items.length) % items.length;
   updateModalImage();
 };
 
@@ -714,13 +881,13 @@ function updateModalImage() {
   const mainImg = overlay.querySelector('.modal-main-img');
   const mainWrap = overlay.querySelector('.modal-main-img-wrap');
   const thumbsContainer = overlay.querySelector('.modal-thumbs');
-  const imgs = window._productModalImages || [''];
+  const items = window._productModalMedia || [{ type: 'image', url: '' }];
   const idx = window._productModalIndex || 0;
-  const src = getProductImageSrc(imgs[idx] || '');
-  setModalMainImage(mainWrap, mainImg, src, 'Product image');
+  const hasImage = setModalMainMedia(mainWrap, mainImg, items[idx] || items[0], 'Product image');
   thumbsContainer.querySelectorAll('.modal-thumb').forEach(function(t, i) {
     t.classList.toggle('active', i === idx);
   });
+  bindModalImageInteractions(overlay, hasImage);
   setModalZoom(false);
 }
 

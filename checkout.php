@@ -174,6 +174,25 @@ function isCodMode(mode) {
   return mode === 'cod' || mode === 'cod_deposit';
 }
 
+function isTechItem(item) {
+  var category = String((item && (item.garmentType || item.category)) || '').toLowerCase();
+  if (category === 'tech') return true;
+  var categories = Array.isArray(item && item.categories) ? item.categories : [];
+  return categories.map(function(v) { return String(v || '').toLowerCase(); }).indexOf('tech') !== -1;
+}
+
+function cartHasTechItems(cart) {
+  return (Array.isArray(cart) ? cart : []).some(isTechItem);
+}
+
+function getTechDisclaimerHtml() {
+  return '<div class="customer-status first-time" style="text-align:left;">' +
+    '<div class="status-text" style="line-height:1.6;">' +
+      '<strong style="color:#ffb0cc;">Tech Item Terms (Short):</strong> Tested working unless stated otherwise. Known flaws are listed in description/photos. Only listed accessories are included. Professionally packed for shipping. Vintage/pre-owned tech sales are final: no returns or exchanges.' +
+    '</div>' +
+  '</div>';
+}
+
 function getCodDeliveryFee(isReturning) {
   return SHIPPING_FEE;
 }
@@ -407,7 +426,8 @@ async function handleContinue() {
   btn.textContent = 'Continue →'; btn.disabled = false;
 
   var isReturning = profile.returning  === true;
-  var codBlocked  = profile.codBlocked === true;
+  var hasTechItems = cartHasTechItems(cart);
+  var codBlocked  = profile.codBlocked === true || hasTechItems;
   var exceeds     = subtotal > COD_PARTIAL_THRESHOLD;
   checkoutPreviewReturning = isReturning;
   checkoutPreviewMode = codBlocked ? 'prepaid' : 'cod';
@@ -420,7 +440,10 @@ async function handleContinue() {
   btn.style.display       = 'none';
 
   // Status banner
-  if (isReturning && !codBlocked) {
+  if (hasTechItems) {
+    statusEl.innerHTML = '<div class="customer-status first-time"><div class="status-icon">!</div>' +
+      '<div class="status-text"><span class="status-highlight">Tech items are online payment only.</span> COD is not available for this order.</div></div>';
+  } else if (isReturning && !codBlocked) {
     var extra = exceeds ? ' Your order exceeds Rs 5,000 — an additional <span class="status-highlight">partial online payment</span> is required.' : '';
     statusEl.innerHTML = '<div class="customer-status returning"><div class="status-icon">✓</div>' +
       '<div class="status-text">Welcome back, <strong>' + d.first + '</strong>! <span class="status-highlight">Rs 300 shipping</span> applies to every order.' + extra + '</div></div>';
@@ -439,10 +462,14 @@ async function handleContinue() {
     codBtn = '<button class="aero-btn pink-btn" onclick="handleCOD()" style="min-width:200px;">' + buildCodLabel(isReturning, subtotal) + '</button>';
   }
   var prepaidBtn = '<button class="aero-btn" onclick="handlePrepaid()" style="min-width:200px;">Pay Full Amount Online</button>';
-  var note = codBlocked ? 'Online payment only due to your previous order status.' : buildCodNote(isReturning, subtotal);
+  var note = hasTechItems
+    ? 'Online payment only: tech category does not support COD.'
+    : (codBlocked ? 'Online payment only due to your previous order status.' : buildCodNote(isReturning, subtotal));
+  var disclaimerBlock = hasTechItems ? getTechDisclaimerHtml() : '';
 
   choicesEl.innerHTML =
     '<div class="glass-body r-bot" style="flex-direction:column; padding:0;">' +
+      disclaimerBlock +
       '<div style="padding:16px 20px;">' +
         '<div class="pay-choices">' + codBtn + prepaidBtn + '</div>' +
         '<p style="font-size:0.78em; color:rgba(255,255,255,0.3); text-align:center; margin-top:8px;">' + note + '</p>' +
@@ -455,6 +482,7 @@ async function handleCOD() {
   var d    = getFormData();
   var cart = Cart.get();
   if (!cart.length) { showToast('Cart empty.'); window.location.href = 'cart.php'; return; }
+  if (cartHasTechItems(cart)) { showToast('Tech items are online payment only.'); return; }
 
   var isReturning = !!(lastCustomerProfile && lastCustomerProfile.returning);
   checkoutPreviewReturning = isReturning;

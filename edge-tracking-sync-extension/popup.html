@@ -1,0 +1,30 @@
+﻿<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tracking Sync</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="wrap">
+    <h1>Tracking Sync</h1>
+    <p class="hint">Hourly auto-sync runs in background. Manual sync also works even if another tab is active.</p>
+
+    <label for="apiUrl">API URL</label>
+    <input id="apiUrl" type="text" value="https://deethrifts.store/api.php" />
+
+    <label for="syncToken">Sync Token</label>
+    <input id="syncToken" type="password" placeholder="TRACKING_SYNC_TOKEN" />
+
+    <div class="row">
+      <button id="saveBtn">Save</button>
+      <button id="syncBtn" class="primary">Sync Now</button>
+    </div>
+
+    <div id="status" class="status"></div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

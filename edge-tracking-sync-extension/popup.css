@@ -1,0 +1,111 @@
+﻿:root {
+  --glass-bg: rgba(15, 18, 28, 0.58);
+  --glass-line: rgba(255, 255, 255, 0.18);
+  --text: #f5f7ff;
+  --muted: #bfc7dd;
+  --pink: #ff86b4;
+  --pink-2: #ff5d9b;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-width: 372px;
+  color: var(--text);
+  font-family: "Segoe UI", "Trebuchet MS", Arial, sans-serif;
+  background:
+    radial-gradient(120px 90px at 15% 12%, rgba(255, 140, 188, 0.30), transparent 70%),
+    radial-gradient(140px 120px at 85% 18%, rgba(130, 168, 255, 0.25), transparent 75%),
+    linear-gradient(145deg, #0a0d15 0%, #11182a 55%, #151321 100%);
+}
+
+.wrap {
+  margin: 12px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid var(--glass-line);
+  background: var(--glass-bg);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+h1 {
+  margin: 0;
+  font-size: 19px;
+  letter-spacing: 0.02em;
+}
+
+.hint {
+  margin: 8px 0 12px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+code {
+  font-family: Consolas, monospace;
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 6px;
+  padding: 1px 5px;
+}
+
+label {
+  display: block;
+  margin: 9px 0 4px;
+  font-size: 12px;
+  color: #d9dfef;
+}
+
+input {
+  width: 100%;
+  border: 1px solid rgba(255,255,255,0.16);
+  border-radius: 12px;
+  background: rgba(10, 13, 20, 0.56);
+  color: #fff;
+  padding: 10px 11px;
+  outline: none;
+}
+
+input:focus {
+  border-color: rgba(255, 132, 184, 0.62);
+  box-shadow: 0 0 0 2px rgba(255, 132, 184, 0.18);
+}
+
+.row {
+  display: flex;
+  gap: 9px;
+  margin-top: 13px;
+}
+
+button {
+  flex: 1;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.10);
+  color: #fff;
+  padding: 10px 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button.primary {
+  border-color: rgba(255, 160, 200, 0.52);
+  background: linear-gradient(135deg, var(--pink), var(--pink-2));
+  box-shadow: 0 10px 20px rgba(255, 93, 155, 0.28);
+}
+
+button:disabled {
+  opacity: 0.62;
+  cursor: default;
+}
+
+.status {
+  margin-top: 11px;
+  min-height: 28px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #d9dfec;
+  white-space: pre-wrap;
+}

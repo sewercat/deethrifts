@@ -60,6 +60,8 @@
         </div>
       <div class="section-label">featured picks</div>
       <div id="featuredRow" style="display:flex; gap:14px; padding:16px; flex-wrap:wrap; justify-content:center;"></div>
+      <div class="section-label">sale items</div>
+      <div id="saleRow" style="display:flex; gap:14px; padding:16px; flex-wrap:wrap; justify-content:center;"></div>
     </div>
 
     <div style="height:2px;"></div>
@@ -171,6 +173,25 @@ async function renderFeatured(skipSync) {
   });
 }
 
+function renderSaleItems() {
+  const row = document.getElementById('saleRow');
+  if (!row) return;
+  row.innerHTML = '';
+
+  const saleItems = getByCategory('sale')
+    .filter(function(p) { return String(p.status || '').toLowerCase() === 'available'; })
+    .slice(0, 12);
+
+  if (!saleItems.length) {
+    row.innerHTML = '<p style="color:rgba(255,255,255,0.45); font-size:0.9em;">No sale items live right now.</p>';
+    return;
+  }
+
+  saleItems.forEach(function(p) {
+    row.appendChild(buildCard(p));
+  });
+}
+
 function trackingEsc(v) {
   if (typeof escapeHtml === 'function') return escapeHtml(v);
   return String(v || '')
@@ -202,7 +223,10 @@ function renderTrackingResult(payload, requestedOrderId) {
   var carrierType = String(payload.carrierType || '').trim().toLowerCase();
   var carrierLabel = trackingEsc(payload.carrierLabel || '');
   var message = trackingEsc(payload.message || 'No tracking info yet. Please check back in a day.');
-  var statusText = trackingEsc(payload.statusText || '');
+  var rawOrderStatus = String(payload.orderStatus || '').trim().toLowerCase();
+  var orderStatusLabel = (rawOrderStatus === 'confirmed' || rawOrderStatus === 'delivered')
+    ? 'Confirmed'
+    : 'Pending';
   var carrierUrl = String(payload.carrierUrl || '').trim();
   var carrierActionLabel = trackingEsc(payload.carrierActionLabel || 'Open Courier');
 
@@ -212,6 +236,7 @@ function renderTrackingResult(payload, requestedOrderId) {
     box.innerHTML =
       '<div style="color:rgba(255,255,255,0.86);">' + message + '</div>' +
       '<div style="margin-top:4px; color:rgba(255,255,255,0.56);">Order: <strong>' + trackingEsc(payload.orderId || requestedOrderId || '-') + '</strong></div>' +
+      '<div style="margin-top:4px; color:rgba(255,255,255,0.62);">Order Status: <strong>' + trackingEsc(orderStatusLabel) + '</strong></div>' +
       (portalHint ? '<div style="margin-top:4px; color:rgba(255,255,255,0.46);">Portal: ' + trackingEsc(portalHint) + '</div>' : '');
     return;
   }
@@ -225,15 +250,14 @@ function renderTrackingResult(payload, requestedOrderId) {
   }
 
   var carrierText = carrierLabel ? ('<div style="margin-top:4px; color:rgba(255,255,255,0.62);">Courier: <strong>' + carrierLabel + '</strong></div>') : '';
-  var statusLine = statusText ? ('<div style="margin-top:4px; color:rgba(255,255,255,0.58);">Latest update: ' + statusText + '</div>') : '';
   var localHint = (carrierType === 'local')
     ? '<div style="margin-top:4px; color:rgba(255,255,255,0.72);">This parcel is being delivered locally. Please contact @deethrifts.pk on Instagram.</div>'
     : '';
 
   box.innerHTML =
     '<div style="color:rgba(255,255,255,0.88);">Tracking Number: <strong style="color:#ffb0cc;">' + trackingEsc(trackingNumber) + '</strong></div>' +
+    '<div style="margin-top:4px; color:rgba(255,255,255,0.62);">Order Status: <strong>' + trackingEsc(orderStatusLabel) + '</strong></div>' +
     carrierText +
-    statusLine +
     '<div style="margin-top:4px; color:rgba(255,255,255,0.72);">' + message + '</div>' +
     localHint +
     (actionBtn ? ('<div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">' + actionBtn + '</div>') : '');
@@ -268,6 +292,7 @@ async function lookupTrackingFromHome() {
 
 document.addEventListener('DOMContentLoaded', async () => {
   await renderFeatured();
+  renderSaleItems();
 
   var trackBtn = document.getElementById('trackLookupBtn');
   var trackInput = document.getElementById('trackOrderId');
@@ -286,7 +311,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       pollMs: 3000,
       refreshProducts: true,
       syncCart: true,
-      onChange: function() { return renderFeatured(true); }
+      onChange: function() {
+        renderSaleItems();
+        return renderFeatured(true);
+      }
     });
   }
 });

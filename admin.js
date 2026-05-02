@@ -1,4 +1,5 @@
 var uploadedImageUrls = [];
+var uploadedVideoUrls = [];
 var currentOrderFilter = '';
 var donateCasesCache = [];
 var editingCaseId = '';
@@ -7,6 +8,8 @@ var editingDraftIndex = -1;
 var dbCurrentTable = '';
 var dbCurrentPkCol = '';
 var pendingImageUploads = 0;
+var storageCurrentFilter = 'all';
+var selectedSaleProductIds = {};
 
 function switchTab(name, btnEl) {
   document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
@@ -20,12 +23,14 @@ function switchTab(name, btnEl) {
 
   if (name === 'database' && !dbCurrentTable) loadDbTable();
   if (name === 'storage') renderStorage(true);
+  if (name === 'sales') renderSaleProducts();
 }
 window.switchTab = switchTab;
 
 document.addEventListener('DOMContentLoaded', function() {
   renderMeasurementInputs();
   renderSelectedImages();
+  renderSelectedVideos();
   renderProducts();
   renderOrders('');
   renderCustomers();
@@ -52,8 +57,12 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function bindAdminEvents() {
-  document.getElementById('a-garment').addEventListener('change', renderMeasurementInputs);
+  document.getElementById('a-garment').addEventListener('change', function() {
+    renderMeasurementInputs();
+    updateVideoInputVisibility();
+  });
   document.getElementById('a-img-files').addEventListener('change', handleImageUpload);
+  document.getElementById('a-video-files').addEventListener('change', handleVideoUpload);
   document.getElementById('postNowBtn').addEventListener('click', postProduct);
   document.getElementById('saveDraftBtn').addEventListener('click', saveDraft);
   document.getElementById('cancelEditBtn').addEventListener('click', clearProductForm);
@@ -64,7 +73,70 @@ function bindAdminEvents() {
   document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
   var storageRefreshBtn = document.getElementById('storageRefreshBtn');
   if (storageRefreshBtn) storageRefreshBtn.addEventListener('click', function() { renderStorage(); });
+  var storageAllBtn = document.getElementById('storageFilterAllBtn');
+  var storageOrphansBtn = document.getElementById('storageFilterOrphansBtn');
+  var storageProofsBtn = document.getElementById('storageFilterProofsBtn');
+  var launchSaleBtn = document.getElementById('launchSaleBtn');
+  if (storageAllBtn) storageAllBtn.addEventListener('click', function() { storageCurrentFilter = 'all'; renderStorage(true); });
+  if (storageOrphansBtn) storageOrphansBtn.addEventListener('click', function() { storageCurrentFilter = 'orphans'; renderStorage(true); });
+  if (storageProofsBtn) storageProofsBtn.addEventListener('click', function() { storageCurrentFilter = 'proofs'; renderStorage(true); });
+  if (launchSaleBtn) launchSaleBtn.addEventListener('click', launchSale);
   document.addEventListener('paste', handlePasteImage);
+  lockNumberInputsAgainstWheel();
+  bindGlobalDropUploads();
+  updateVideoInputVisibility();
+}
+
+function lockNumberInputsAgainstWheel() {
+  function wireInput(input) {
+    if (!input || input.dataset.wheelLocked === '1') return;
+    input.dataset.wheelLocked = '1';
+    input.addEventListener('wheel', function(e) {
+      if (document.activeElement === input) input.blur();
+      e.preventDefault();
+    }, { passive: false });
+  }
+  document.querySelectorAll('input[type="number"]').forEach(wireInput);
+  var observer = new MutationObserver(function() {
+    document.querySelectorAll('input[type="number"]').forEach(wireInput);
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+}
+
+function bindGlobalDropUploads() {
+  var isProcessingDrop = false;
+  document.addEventListener('dragover', function(e) {
+    if (!e.dataTransfer) return;
+    e.preventDefault();
+  });
+  document.addEventListener('drop', async function(e) {
+    if (!e.dataTransfer || isProcessingDrop) return;
+    var files = Array.from(e.dataTransfer.files || []);
+    if (!files.length) return;
+    e.preventDefault();
+    isProcessingDrop = true;
+    try {
+      var imageFiles = files.filter(function(f) { return String(f.type || '').indexOf('image/') === 0; });
+      var videoFiles = files.filter(function(f) { return String(f.type || '').indexOf('video/') === 0; });
+      if (imageFiles.length) {
+        await uploadImageFiles(imageFiles);
+      }
+      if (videoFiles.length) {
+        if (!isVideoEnabledCategory(document.getElementById('a-garment').value)) {
+          showToast('Video drop is only enabled for tech and misc.');
+        } else {
+          await uploadVideoFiles(videoFiles);
+        }
+      }
+      if (!imageFiles.length && !videoFiles.length) {
+        showToast('Drop image/video files only.');
+      } else if (imageFiles.length || videoFiles.length) {
+        switchTab('products');
+      }
+    } finally {
+      isProcessingDrop = false;
+    }
+  });
 }
 
 function normalizeAdminGarmentType(value) {
@@ -75,8 +147,33 @@ function normalizeAdminGarmentType(value) {
     .replace(/^_+|_+$/g, '');
   if (key === 'shirts') return 'tops';
   if (key === 'misc_items') return 'misc';
-  if (key === 'tops' || key === 'bottoms' || key === 'bags' || key === 'desi' || key === 'accessories' || key === 'dresses' || key === 'misc') return key;
+  if (key === 'tops' || key === 'bottoms' || key === 'bags' || key === 'desi' || key === 'accessories' || key === 'dresses' || key === 'tech' || key === 'misc') return key;
   return 'accessories';
+}
+
+function isVideoEnabledCategory(type) {
+  var t = normalizeAdminGarmentType(type);
+  return t === 'tech' || t === 'misc';
+}
+
+function updateVideoInputVisibility() {
+  var garmentSel = document.getElementById('a-garment');
+  var enabled = isVideoEnabledCategory(garmentSel ? garmentSel.value : '');
+  var videoGroups = document.querySelectorAll('.video-only-field');
+  videoGroups.forEach(function(el) { el.style.display = enabled ? '' : 'none'; });
+  if (!enabled) {
+    uploadedVideoUrls = [];
+    var videoUrlEl = document.getElementById('a-video-url');
+    var videoFileEl = document.getElementById('a-video-files');
+    if (videoUrlEl) videoUrlEl.value = '';
+    if (videoFileEl) videoFileEl.value = '';
+    renderSelectedVideos();
+    var info = document.getElementById('videoSelectionInfo');
+    if (info) info.textContent = 'Videos are only enabled for tech and misc products.';
+  } else {
+    var info2 = document.getElementById('videoSelectionInfo');
+    if (info2 && !uploadedVideoUrls.length) info2.textContent = 'Upload up to 5 videos (max 500MB each).';
+  }
 }
 
 function renderSelectedImages() {
@@ -96,11 +193,57 @@ function renderSelectedImages() {
   }).join('');
 }
 
+function renderSelectedVideos() {
+  var list = document.getElementById('selectedVideoList');
+  if (!list) return;
+  var videos = normalizeVideoList(uploadedVideoUrls);
+  uploadedVideoUrls = videos;
+  if (!videos.length) {
+    list.className = 'selected-image-empty';
+    list.innerHTML = 'No videos selected.';
+    return;
+  }
+  list.className = 'selected-image-grid';
+  list.innerHTML = videos.map(function(url, i) {
+    var media = '';
+    if (/\.(mp4|webm|ogg|mov)(\?|#|$)/i.test(url) || String(url || '').charAt(0) === '/') {
+      media = '<video src="' + escAttr(url) + '" style="width:100%;height:100%;object-fit:cover;display:block;" muted playsinline preload="metadata"></video>';
+    } else {
+      media = '<div class="no-image-fallback" style="width:100%;height:100%;display:flex;font-size:0.58em;padding:4px;">Video URL</div>';
+    }
+    return '<div class="selected-image-item">' + media + '<button class="selected-image-remove" type="button" onclick="removeSelectedVideo(' + i + ')">×</button></div>';
+  }).join('');
+}
+
 function removeSelectedImage(index) {
   if (index < 0 || index >= uploadedImageUrls.length) return;
   uploadedImageUrls.splice(index, 1);
   renderSelectedImages();
   document.getElementById('imgSelectionInfo').textContent = uploadedImageUrls.length + ' image(s) ready.';
+}
+
+function removeSelectedVideo(index) {
+  if (index < 0 || index >= uploadedVideoUrls.length) return;
+  var url = String(uploadedVideoUrls[index] || '').trim();
+  var finalize = function() {
+    uploadedVideoUrls.splice(index, 1);
+    renderSelectedVideos();
+    var info = document.getElementById('videoSelectionInfo');
+    if (info) info.textContent = uploadedVideoUrls.length + ' video(s) ready.';
+  };
+  var isLocalUpload = /^\/uploads\//i.test(url);
+  if (!isLocalUpload) {
+    finalize();
+    return;
+  }
+  window.DEE_API.postJson({ type: 'delete_storage_file', file: url })
+    .then(function() {
+      showToast('Video removed and deleted from uploads.');
+      finalize();
+    })
+    .catch(function(err) {
+      showToast((err && err.message) ? err.message : 'Could not delete video file.');
+    });
 }
 
 function resetProductEditState() {
@@ -164,11 +307,21 @@ function editProduct(productId) {
   document.getElementById('a-price').value = Number(p.price || 0);
   document.getElementById('a-defects').value = normalizeDefects(p.defects || '');
   document.getElementById('a-description').value = String(p.description || '').trim();
+  document.getElementById('a-video-url').value = String(p.videoUrl || '').trim();
   document.getElementById('a-img-urls').value = '';
   uploadedImageUrls = normalizeImageList((p.images && p.images.length ? p.images : (p.img ? [p.img] : [])));
+  uploadedVideoUrls = normalizeVideoList((p.videoUrls && p.videoUrls.length ? p.videoUrls : (p.videoUrl ? [p.videoUrl] : [])));
+  if (!isVideoEnabledCategory(normalizeAdminGarmentType(p.garmentType || p.category))) {
+    uploadedVideoUrls = [];
+    document.getElementById('a-video-url').value = '';
+  }
   renderSelectedImages();
+  renderSelectedVideos();
   document.getElementById('imgSelectionInfo').textContent = uploadedImageUrls.length + ' image(s) ready.';
+  var videoInfo = document.getElementById('videoSelectionInfo');
+  if (videoInfo) videoInfo.textContent = uploadedVideoUrls.length + ' video(s) ready.';
   renderMeasurementInputs();
+  updateVideoInputVisibility();
   fillMeasurementInputs(normalizeAdminGarmentType(p.garmentType || p.category), p.meta || p.measurements || '');
 
   var hint = document.getElementById('productEditingHint');
@@ -222,9 +375,30 @@ async function uploadSingleFile(file) {
   var form = new FormData();
   form.append('image', file);
   form.append('type', 'upload_image');
-  var res = await fetch('api.php', { method: 'POST', body: form });
-  if (!res.ok) throw new Error('Upload failed');
-  return res.json();
+  if (window.DEE_ADMIN_CSRF) form.append('_csrf', window.DEE_ADMIN_CSRF);
+  var res = await fetch('api.php', { method: 'POST', body: form, credentials: 'same-origin' });
+  var payload = {};
+  try { payload = await res.json(); } catch (_) { payload = {}; }
+  if (!res.ok || !payload.ok) {
+    var msg = (payload && payload.error) ? String(payload.error) : ('Upload failed (' + res.status + ')');
+    throw new Error(msg);
+  }
+  return payload;
+}
+
+async function uploadSingleVideoFile(file) {
+  var form = new FormData();
+  form.append('video', file);
+  form.append('type', 'upload_video');
+  if (window.DEE_ADMIN_CSRF) form.append('_csrf', window.DEE_ADMIN_CSRF);
+  var res = await fetch('api.php', { method: 'POST', body: form, credentials: 'same-origin' });
+  var payload = {};
+  try { payload = await res.json(); } catch (_) { payload = {}; }
+  if (!res.ok || !payload.ok) {
+    var msg = (payload && payload.error) ? String(payload.error) : ('Video upload failed (' + res.status + ')');
+    throw new Error(msg);
+  }
+  return payload;
 }
 
 async function compressProductImage(file, maxFileSizeMB) {
@@ -277,9 +451,14 @@ async function compressProductImage(file, maxFileSizeMB) {
 
 async function handleImageUpload(e) {
   var files = Array.from(e.target.files || []);
+  await uploadImageFiles(files);
+  e.target.value = '';
+}
+
+async function uploadImageFiles(files) {
   if (!files.length) return;
-  if (uploadedImageUrls.length + files.length > 5) { showToast('Max 5 images.'); e.target.value = ''; return; }
-  if (files.find(function(f) { return f.size > 50 * 1024 * 1024; })) { showToast('Each image max 50MB.'); e.target.value = ''; return; }
+  if (uploadedImageUrls.length + files.length > 5) { showToast('Max 5 images.'); return; }
+  if (files.find(function(f) { return f.size > 50 * 1024 * 1024; })) { showToast('Each image max 50MB.'); return; }
   pendingImageUploads++;
   try {
     for (var i = 0; i < files.length; i++) {
@@ -294,9 +473,42 @@ async function handleImageUpload(e) {
   } finally {
     pendingImageUploads = Math.max(0, pendingImageUploads - 1);
   }
-  e.target.value = '';
   renderSelectedImages();
   document.getElementById('imgSelectionInfo').textContent = uploadedImageUrls.length + ' image(s) ready.';
+}
+
+async function handleVideoUpload(e) {
+  var files = Array.from(e.target.files || []);
+  await uploadVideoFiles(files);
+  e.target.value = '';
+}
+
+async function uploadVideoFiles(files) {
+  if (!files.length) return;
+  if (!isVideoEnabledCategory(document.getElementById('a-garment').value)) {
+    showToast('Videos are only enabled for tech and misc.');
+    return;
+  }
+  if (uploadedVideoUrls.length + files.length > 5) { showToast('Max 5 videos.'); return; }
+  if (files.find(function(f) { return f.size > 500 * 1024 * 1024; })) { showToast('Each video max 500MB.'); return; }
+  pendingImageUploads++;
+  try {
+    for (var i = 0; i < files.length; i++) {
+      try {
+        showToast('Uploading video ' + (i + 1) + '/' + files.length + '...');
+        var json = await uploadSingleVideoFile(files[i]);
+        if (json.ok && json.url) {
+          uploadedVideoUrls.push(json.url);
+          showToast('Video ' + (i + 1) + ' uploaded.');
+        } else showToast('Video upload failed.');
+      } catch (err) { showToast((err && err.message) ? err.message : 'Video upload error.'); }
+    }
+  } finally {
+    pendingImageUploads = Math.max(0, pendingImageUploads - 1);
+  }
+  renderSelectedVideos();
+  var info = document.getElementById('videoSelectionInfo');
+  if (info) info.textContent = uploadedVideoUrls.length + ' video(s) ready.';
 }
 
 async function handlePasteImage(e) {
@@ -330,16 +542,29 @@ function clearProductForm() {
   document.getElementById('a-price').value = '';
   document.getElementById('a-img-urls').value = '';
   document.getElementById('a-img-files').value = '';
+  document.getElementById('a-video-files').value = '';
   document.getElementById('a-defects').value = 'No known defects';
   document.getElementById('a-description').value = '';
+  document.getElementById('a-video-url').value = '';
   document.getElementById('a-cond').value = '10/10';
   uploadedImageUrls = [];
+  uploadedVideoUrls = [];
   renderSelectedImages();
+  renderSelectedVideos();
   document.getElementById('imgSelectionInfo').textContent = 'Upload up to 5 images (max 50MB each). Images are auto-compressed.';
+  var info = document.getElementById('videoSelectionInfo');
+  if (info) info.textContent = 'Videos are only enabled for tech and misc. Upload up to 5 videos (max 500MB each).';
   renderMeasurementInputs();
+  updateVideoInputVisibility();
 }
 
 function parseManualImageUrls(rawInput) {
+  var raw = String(rawInput || '').trim();
+  if (!raw) return [];
+  return raw.split(/[\r\n,]+/).map(function(v) { return v.trim(); }).filter(Boolean);
+}
+
+function parseManualVideoUrls(rawInput) {
   var raw = String(rawInput || '').trim();
   if (!raw) return [];
   return raw.split(/[\r\n,]+/).map(function(v) { return v.trim(); }).filter(Boolean);
@@ -356,10 +581,25 @@ function normalizeImageList(urls) {
   return out.slice(0, 5);
 }
 
+function normalizeVideoList(urls) {
+  var src = Array.isArray(urls) ? urls : [];
+  var out = [];
+  src.forEach(function(v) {
+    var s = String(v || '').trim();
+    if (!s) return;
+    if (out.indexOf(s) === -1) out.push(s);
+  });
+  return out.slice(0, 5);
+}
+
 function buildProductPayload(d) {
   var imgs = normalizeImageList((d && d.imageUrls) || (d && d.images) || []);
   var primary = imgs[0] || '';
   var garmentType = normalizeAdminGarmentType((d && d.garmentType) || '');
+  var vids = isVideoEnabledCategory(garmentType)
+    ? normalizeVideoList((d && d.videoUrls) || (d && d.videos) || [])
+    : [];
+  var primaryVideo = vids[0] || '';
   return {
     productId: (d && d.productId) || ('PRD-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase()),
     name: d.name,
@@ -369,6 +609,10 @@ function buildProductPayload(d) {
     cond: d.cond,
     defects: d.defects || 'No known defects',
     description: String((d && d.description) || '').trim(),
+    videoUrl: primaryVideo,
+    videoUrls: vids,
+    videos: vids,
+    video_url: primaryVideo,
     price: d.price,
     measurements: d.measurements,
     imageUrls: imgs,
@@ -381,14 +625,22 @@ function buildProductPayload(d) {
 function collectDraftData() {
   var urlInput = document.getElementById('a-img-urls').value.trim();
   var extraUrls = parseManualImageUrls(urlInput);
+  var garmentType = normalizeAdminGarmentType(document.getElementById('a-garment').value);
+  var videoUrlInput = document.getElementById('a-video-url').value.trim();
+  var extraVideoUrls = isVideoEnabledCategory(garmentType) ? parseManualVideoUrls(videoUrlInput) : [];
   var defects = document.getElementById('a-defects').value.trim();
+  var finalVideos = isVideoEnabledCategory(garmentType)
+    ? normalizeVideoList(uploadedVideoUrls.concat(extraVideoUrls))
+    : [];
   return {
     productId: editingProductId || '',
     name: document.getElementById('a-name').value.trim(),
-    garmentType: normalizeAdminGarmentType(document.getElementById('a-garment').value),
+    garmentType: garmentType,
     cond: document.getElementById('a-cond').value,
     defects: defects || 'No known defects',
     description: document.getElementById('a-description').value.trim(),
+    videoUrl: finalVideos[0] || '',
+    videoUrls: finalVideos,
     price: Number(document.getElementById('a-price').value || 0),
     measurements: collectMeasurements(),
     imageUrls: normalizeImageList(uploadedImageUrls.concat(extraUrls))
@@ -474,11 +726,21 @@ function editDraft(idx) {
   document.getElementById('a-price').value = Number(d.price || 0);
   document.getElementById('a-defects').value = normalizeDefects(d.defects || '');
   document.getElementById('a-description').value = String(d.description || '').trim();
+  document.getElementById('a-video-url').value = String(d.videoUrl || '').trim();
   document.getElementById('a-img-urls').value = '';
   uploadedImageUrls = normalizeImageList((d.imageUrls && d.imageUrls.length ? d.imageUrls : (d.images && d.images.length ? d.images : (d.imageUrl ? [d.imageUrl] : []))));
+  uploadedVideoUrls = normalizeVideoList((d.videoUrls && d.videoUrls.length ? d.videoUrls : (d.videos && d.videos.length ? d.videos : (d.videoUrl ? [d.videoUrl] : []))));
+  if (!isVideoEnabledCategory(normalizeAdminGarmentType(d.garmentType || d.category))) {
+    uploadedVideoUrls = [];
+    document.getElementById('a-video-url').value = '';
+  }
   renderSelectedImages();
+  renderSelectedVideos();
   document.getElementById('imgSelectionInfo').textContent = uploadedImageUrls.length + ' image(s) ready.';
+  var videoInfo = document.getElementById('videoSelectionInfo');
+  if (videoInfo) videoInfo.textContent = uploadedVideoUrls.length + ' video(s) ready.';
   renderMeasurementInputs();
+  updateVideoInputVisibility();
   fillMeasurementInputs(normalizeAdminGarmentType(d.garmentType || d.category), d.measurements || d.meta || '');
 
   var hint = document.getElementById('productEditingHint');
@@ -549,6 +811,67 @@ async function renderProducts(skipRefresh) {
     return '<div class="admin-item-row">' + imgHtml + '<div class="admin-item-info"><div class="admin-item-name">' + escHtml(p.name) + '</div><div class="admin-item-meta">' + escHtml(p.meta || '-') + ' | ' + escHtml(cats) + ' | ' + escHtml(status) + '</div><div class="admin-item-meta">Condition: ' + escHtml(p.cond) + ' | Defects: ' + escHtml(p.defects || 'No known defects') + '</div>' + descHtml + '</div><div class="admin-item-price">' + formatPkr(p.price) + '</div><button class="admin-wa-btn" onclick="editProduct(\'' + escAttr(p.id) + '\')">edit</button><button class="admin-feat-btn' + (p.is_featured ? ' featured' : '') + '" onclick="toggleFeatured(\'' + escAttr(p.id) + '\')">' + (p.is_featured ? 'on' : 'off') + '</button><button class="admin-del-btn" onclick="deleteProduct(\'' + escAttr(p.id) + '\')">remove</button></div>';
   }).join('');
   renderCategoryCovers();
+  renderSaleProducts();
+}
+
+function toggleSaleProductSelection(pid) {
+  if (!pid) return;
+  if (selectedSaleProductIds[pid]) delete selectedSaleProductIds[pid];
+  else selectedSaleProductIds[pid] = true;
+  renderSaleProducts();
+}
+window.toggleSaleProductSelection = toggleSaleProductSelection;
+
+async function renderSaleProducts() {
+  var container = document.getElementById('saleProductList');
+  if (!container) return;
+  var products = getAllProducts().filter(function(p) {
+    return String(p.status || '').toLowerCase() === 'available';
+  });
+  if (!products.length) {
+    try {
+      await Products.refresh();
+      products = getAllProducts().filter(function(p) {
+        return String(p.status || '').toLowerCase() === 'available';
+      });
+    } catch (_) {}
+  }
+  var count = 0;
+  Object.keys(selectedSaleProductIds).forEach(function(pid) {
+    if (selectedSaleProductIds[pid]) count++;
+  });
+  if (!products.length) {
+    container.innerHTML = '<p style="font-size:0.85em; color:rgba(255,255,255,0.3);">No products found.</p>';
+    return;
+  }
+  container.innerHTML = '<div class="admin-item-meta" style="margin-bottom:10px;">Selected: ' + count + ' product(s)</div>' +
+    '<div class="sale-grid">' + products.map(function(p) {
+      var selected = !!selectedSaleProductIds[p.id];
+      var img = (p.images && p.images[0]) || p.img;
+      return '<button type="button" class="sale-card' + (selected ? ' selected' : '') + '" onclick="toggleSaleProductSelection(\'' + escAttr(p.id) + '\')">' +
+        '<label class="sale-card-check"><input type="checkbox" ' + (selected ? 'checked' : '') + ' onclick="event.stopPropagation();toggleSaleProductSelection(\'' + escAttr(p.id) + '\')"> select</label>' +
+        getImageOrFallbackHtml(img, p.name || 'Product', 'sale-card-img', '', 'sale-card-img no-image-fallback', '', 'No image available') +
+        '<div class="sale-card-body"><div class="sale-card-name">' + escHtml(p.name) + '</div><div class="sale-card-price">' + formatPkr(p.price) + '</div></div>' +
+      '</button>';
+    }).join('') + '</div>';
+}
+
+async function launchSale() {
+  var percentEl = document.getElementById('salePercentInput');
+  if (!percentEl) return;
+  var percent = Number(percentEl.value || 0);
+  var productIds = Object.keys(selectedSaleProductIds).filter(function(pid) { return !!selectedSaleProductIds[pid]; });
+  if (!Number.isFinite(percent) || percent < 1 || percent > 90) { showToast('Enter a sale percent from 1 to 90.'); return; }
+  if (!productIds.length) { showToast('Select at least one product.'); return; }
+  try {
+    var res = await window.DEE_API.postJson({ type: 'apply_sale', percent: Math.round(percent), productIds: productIds });
+    if (!res.ok) { showToast('Failed to launch sale.'); return; }
+    showToast('Sale launched for ' + (res.updated || 0) + ' product(s).');
+    selectedSaleProductIds = {};
+    await renderProducts();
+  } catch (e) {
+    showToast((e && e.message) ? e.message : 'Failed to launch sale.');
+  }
 }
 
 function renderCategoryCovers() {
@@ -565,6 +888,7 @@ function renderCategoryCovers() {
 
   container.innerHTML = categories.map(function(cat) {
     var categoryProducts = products.filter(function(p) {
+      if (cat.key === 'available') return String(p.status || '').toLowerCase() === 'available';
       return (p.categories || [p.category]).indexOf(cat.key) !== -1;
     });
     var selectedPid = coverMap[cat.key] || '';
@@ -681,6 +1005,11 @@ async function renderStorage(silent) {
   var freeEl = document.getElementById('storageFreeText');
   var pCountEl = document.getElementById('storageProductsCount');
   var prCountEl = document.getElementById('storageProofsCount');
+  var allBtn = document.getElementById('storageFilterAllBtn');
+  var orphanBtn = document.getElementById('storageFilterOrphansBtn');
+  var proofBtn = document.getElementById('storageFilterProofsBtn');
+  var summaryEl = document.getElementById('storageFilterSummary');
+  var filteredListEl = document.getElementById('storageFilteredList');
   if (!usageTextEl || !fillEl || !usedEl || !freeEl) return;
 
   if (!silent) {
@@ -705,10 +1034,36 @@ async function renderStorage(silent) {
     var files = Array.isArray(storage.files) ? storage.files : [];
     var productFiles = files.filter(function(f) { return String((f && f.category) || 'products') !== 'proofs'; });
     var proofFiles = files.filter(function(f) { return String((f && f.category) || '') === 'proofs'; });
+    var orphanFiles = files.filter(function(f) { return !!f && f.referenced === false; });
 
     if (pCountEl) pCountEl.textContent = productFiles.length;
     if (prCountEl) prCountEl.textContent = proofFiles.length;
+    if (allBtn) {
+      allBtn.textContent = 'All Files (' + files.length + ')';
+      allBtn.classList.toggle('pink-btn', storageCurrentFilter === 'all');
+    }
+    if (orphanBtn) {
+      orphanBtn.textContent = 'Orphans (' + orphanFiles.length + ')';
+      orphanBtn.classList.toggle('pink-btn', storageCurrentFilter === 'orphans');
+    }
+    if (proofBtn) {
+      proofBtn.textContent = 'Proofs (' + proofFiles.length + ')';
+      proofBtn.classList.toggle('pink-btn', storageCurrentFilter === 'proofs');
+    }
 
+    var filtered = files;
+    var label = 'all files';
+    if (storageCurrentFilter === 'orphans') {
+      filtered = orphanFiles;
+      label = 'orphan files';
+    } else if (storageCurrentFilter === 'proofs') {
+      filtered = proofFiles;
+      label = 'proof files';
+    }
+    if (summaryEl) summaryEl.textContent = 'Showing ' + filtered.length + ' ' + label + '.';
+    if (filteredListEl) {
+      renderStorageFileGroup('storageFilteredList', filtered, 'No files for this filter.');
+    }
     renderStorageFileGroup('storageProductsList', productFiles, 'No product images found.');
     renderStorageFileGroup('storageProofsList', proofFiles, 'No proof images found.');
   } catch (e) {
@@ -718,10 +1073,15 @@ async function renderStorage(silent) {
     freeEl.textContent = 'Left: -';
     if (pCountEl) pCountEl.textContent = '0';
     if (prCountEl) prCountEl.textContent = '0';
+    if (allBtn) allBtn.textContent = 'All Files';
+    if (orphanBtn) orphanBtn.textContent = 'Orphans';
+    if (proofBtn) proofBtn.textContent = 'Proofs';
+    if (summaryEl) summaryEl.textContent = 'Could not load filtered storage list.';
     var msg = escHtml((e && e.message) ? e.message : 'Could not load storage data.');
     var fallback = '<p style="font-size:0.82em; color:rgba(255,120,120,0.75);">' + msg + '</p>';
     var pList = document.getElementById('storageProductsList');
     var prList = document.getElementById('storageProofsList');
+    if (filteredListEl) filteredListEl.innerHTML = fallback;
     if (pList) pList.innerHTML = fallback;
     if (prList) prList.innerHTML = fallback;
   }
@@ -787,6 +1147,13 @@ async function updateOrder(orderId, status) {
           showToast(did ? ('Delivery booking created (' + did + ').') : 'Delivery booking created.');
         } else {
           showToast('Order confirmed, but delivery booking failed. ' + String(r.delivery.message || ''));
+        }
+      }
+      if (status === 'Confirmed' && r.instagramDm) {
+        if (r.instagramDm.sent) {
+          showToast('Instagram DM sent to @' + String(r.instagramDm.username || 'customer') + '.');
+        } else {
+          showToast('IG DM not sent: ' + String(r.instagramDm.message || 'not configured'));
         }
       }
       await renderProducts();
@@ -993,4 +1360,3 @@ async function saveSettings() {
 
 function escHtml(str) { return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 function escAttr(str) { return String(str).replace(/'/g, '&#39;').replace(/"/g, '&quot;'); }
-

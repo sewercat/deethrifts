@@ -88,6 +88,7 @@ $isAdmin = isAdminSessionValid();
       <button class="tab-btn" type="button" data-tab="orders" onclick="switchTab('orders', this)">Orders</button>
       <button class="tab-btn" type="button" data-tab="customers" onclick="switchTab('customers', this)">Customers</button>
       <button class="tab-btn" type="button" data-tab="donate" onclick="switchTab('donate', this)">Donate Cases</button>
+      <button class="tab-btn" type="button" data-tab="sales" onclick="switchTab('sales', this)">Sales</button>
       <button class="tab-btn" type="button" data-tab="storage" onclick="switchTab('storage', this)">Storage</button>
       <button class="tab-btn" type="button" data-tab="database" onclick="switchTab('database', this)">Database</button>
       <button class="tab-btn" type="button" data-tab="settings" onclick="switchTab('settings', this)">Settings</button>
@@ -110,6 +111,7 @@ $isAdmin = isAdminSessionValid();
               <option value="desi">Desi</option>
               <option value="accessories">Accessories</option>
               <option value="dresses">Dresses</option>
+              <option value="tech">Tech</option>
               <option value="misc">Misc</option>
             </select>
           </div>
@@ -133,6 +135,16 @@ $isAdmin = isAdminSessionValid();
         <div class="form-group">
           <label class="form-label">Description (optional)</label>
           <textarea class="glass-input" id="a-description" rows="3" style="resize:vertical;" placeholder="Add extra details about this product..."></textarea>
+        </div>
+        <div class="form-group video-only-field">
+          <label class="form-label">Working Video URL(s) (optional, comma-separated)</label>
+          <input class="glass-input" id="a-video-url" type="text" placeholder="https://...">
+        </div>
+        <div class="form-group video-only-field">
+          <label class="form-label">Video Files (max 5)</label>
+          <input class="glass-input" id="a-video-files" type="file" accept="video/mp4,video/webm,video/ogg,video/quicktime,.mp4,.webm,.ogg,.mov" multiple>
+          <p id="videoSelectionInfo" style="font-size:0.74em; color:rgba(255,255,255,0.4); margin-top:6px;">Videos are only enabled for tech and misc. Upload up to 5 videos (max 500MB each).</p>
+          <div id="selectedVideoList" class="selected-image-empty">No videos selected.</div>
         </div>
         <div id="measurementBox"></div>
         <div class="form-group">
@@ -209,6 +221,23 @@ $isAdmin = isAdminSessionValid();
       <div class="admin-section"><div class="admin-section-title">Live Donate Cases <span class="draft-count" id="donateCaseCount">0</span></div><div id="donateCaseList"><p style="font-size:0.85em; color:rgba(255,255,255,0.3);">Loading...</p></div></div>
     </div>
 
+    <div class="tab-panel" id="tab-sales">
+      <div class="admin-section">
+        <div class="admin-section-title">Launch Sale</div>
+        <div class="form-row">
+          <div class="form-group" style="max-width:260px;">
+            <label class="form-label">Discount Percentage</label>
+            <input class="glass-input" id="salePercentInput" type="number" min="1" max="90" step="1" placeholder="20">
+          </div>
+          <div class="form-group" style="display:flex; align-items:flex-end;">
+            <button class="aero-btn pink-btn" id="launchSaleBtn" type="button">Launch Sale</button>
+          </div>
+        </div>
+        <p style="font-size:0.8em; color:rgba(255,255,255,0.45); margin:0 0 12px;">Select products from the cards below, then launch the sale.</p>
+        <div id="saleProductList"><p style="font-size:0.85em; color:rgba(255,255,255,0.3);">Loading products...</p></div>
+      </div>
+    </div>
+
     <div class="tab-panel" id="tab-database">
       <div class="admin-section">
         <div class="admin-section-title">Database Viewer</div>
@@ -263,9 +292,16 @@ $isAdmin = isAdminSessionValid();
           <span id="storageUsedText">Used: -</span>
           <span id="storageFreeText">Left: -</span>
         </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
+          <button class="aero-btn" id="storageFilterAllBtn" type="button">All Files</button>
+          <button class="aero-btn" id="storageFilterOrphansBtn" type="button">Orphans</button>
+          <button class="aero-btn" id="storageFilterProofsBtn" type="button">Proofs</button>
+        </div>
+        <div id="storageFilterSummary" style="margin-top:8px; font-size:0.78em; color:rgba(255,255,255,0.6);">Showing all files.</div>
         <div style="margin-top:12px;">
           <button class="aero-btn" id="storageRefreshBtn" type="button">Refresh Storage</button>
         </div>
+        <div id="storageFilteredList" class="storage-list" style="margin-top:12px;"><p style="font-size:0.85em; color:rgba(255,255,255,0.3);">Loading...</p></div>
       </div>
 
       <div class="admin-section">
@@ -278,6 +314,7 @@ $isAdmin = isAdminSessionValid();
         <div id="storageProofsList" class="storage-list"><p style="font-size:0.85em; color:rgba(255,255,255,0.3);">Loading...</p></div>
       </div>
     </div>
+
   </div>
 <?php endif; ?>
 
